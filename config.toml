@@ -1,0 +1,29 @@
+# Tickers to run when none are given on the command line.
+tickers = ["QQQ", "NDX", "SPY"]
+
+output_dir = "output"
+risk_free_rate = 0.04
+dividend_yield = 0.0
+
+# Chain selection and cleaning
+max_dte = 60               # ignore expirations further out than this (days)
+max_expirations = 12       # cap on expirations fetched per ticker
+strike_range_pct = 0.20    # keep strikes within spot +/- 20%
+min_open_interest = 1
+min_iv = 0.01              # drop contracts with IV below 1% (Yahoo placeholder values)
+max_iv = 5.0               # ... or above 500%
+
+# Zero-gamma sweep: re-price the book from spot -15% to +15%
+sweep_pct = 0.15
+sweep_steps = 301
+
+# Rate limiting (seconds)
+pause_between_expirations = 0.5
+pause_between_tickers = 2.0
+max_retries = 3
+
+plots = true
+
+# Map tickers to Yahoo symbols (NDX, SPX, RUT, VIX, XSP are mapped by default)
+[aliases]
+# NDX = "^NDX"

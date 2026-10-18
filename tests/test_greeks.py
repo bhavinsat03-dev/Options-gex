@@ -2,7 +2,7 @@ import math
 
 import numpy as np
 
-from gex.greeks import bs_gamma
+from gex.greeks import bs_charm, bs_delta, bs_gamma, bs_vanna
 
 
 def _bs_call_delta(s, k, t, v, r, q):
@@ -38,3 +38,28 @@ def test_peaks_near_the_money():
     strikes = np.arange(80, 121)
     g = bs_gamma(100, strikes, 0.05, 0.2)
     assert abs(strikes[g.argmax()] - 100) <= 1
+
+
+def test_delta_matches_reference_and_put_call_parity():
+    s, k, t, v, r, q = 450.0, 460.0, 0.1, 0.18, 0.04, 0.01
+    call = bs_delta(s, k, t, v, True, r, q)
+    put = bs_delta(s, k, t, v, False, r, q)
+    assert math.isclose(call, _bs_call_delta(s, k, t, v, r, q), rel_tol=1e-9)
+    assert math.isclose(call - put, math.exp(-q * t), rel_tol=1e-9)
+
+
+def test_vanna_matches_finite_difference():
+    s, k, t, v, r, q = 100.0, 105.0, 0.25, 0.22, 0.03, 0.0
+    h = 1e-5
+    fd = (_bs_call_delta(s, k, t, v + h, r, q) - _bs_call_delta(s, k, t, v - h, r, q)) / (2 * h)
+    assert math.isclose(bs_vanna(s, k, t, v, r, q), fd, rel_tol=1e-5)
+
+
+def test_charm_matches_finite_difference():
+    s, k, t, v, r, q = 100.0, 95.0, 0.2, 0.3, 0.04, 0.02
+    h = 1e-6
+    for is_call in (True, False):
+        def d(tt):
+            return float(bs_delta(s, k, tt, v, is_call, r, q))
+        fd = -(d(t + h) - d(t - h)) / (2 * h)  # delta change as time passes
+        assert math.isclose(float(bs_charm(s, k, t, v, is_call, r, q)), fd, rel_tol=1e-4)

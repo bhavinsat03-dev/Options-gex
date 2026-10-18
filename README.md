@@ -1,6 +1,17 @@
 # options-gex
 
-A command-line tool that estimates dealer **gamma exposure (GEX)**, the **call wall**, the **put wall** and the **zero-gamma flip** for QQQ, NDX, SPY or any ticker with listed options. It uses free Yahoo Finance option chains (via `yfinance`).
+A command-line tool that estimates dealer options positioning for QQQ, NDX, SPY or any ticker with listed options. It uses free Yahoo Finance option chains (via `yfinance`).
+
+It reports:
+- **gamma exposure (GEX)**: net value, the top call and put walls, the absolute gamma strike, the zero-gamma flip and a gamma profile
+- **delta, vanna and charm exposure**
+- **expected move**
+- **put/call open-interest ratio** and **25-delta skew**
+- **expiry concentration**
+
+Each run also writes a plain-English report and compares the results with the previous run.
+
+> Descriptive analytics only. Nothing here is trading advice.
 
 ## Install
 
@@ -29,6 +40,7 @@ python -m gex SPY --max-dte 30 --strike-range 0.1 -v
 | `--max-expirations N` | Cap on the number of expirations per ticker |
 | `--strike-range F` | Keep strikes within spot ± F (for example 0.2 = ±20%) |
 | `--no-plots` | Skip PNG charts |
+| `--no-history` | Don't save to, or compare against, run history |
 | `-v` | Verbose logging |
 
 Index symbols are mapped to Yahoo's caret form automatically (`NDX → ^NDX`, `SPX → ^SPX`, `RUT`, `VIX`, `XSP`). To add more, use the `[aliases]` table in `config.toml`.
@@ -37,57 +49,129 @@ Index symbols are mapped to Yahoo's caret form automatically (`NDX → ^NDX`, `S
 
 ```
 output/
-├── summary_20261016_100000.csv       # one row per ticker (errors included)
+├── summary_20261016_100000.csv       # one row per ticker (all headline metrics, errors included)
+├── history/
+│   ├── QQQ_20261015_100000.json      # every run's summary, used for change tracking
+│   └── QQQ_20261016_100000.json
 └── QQQ/20261016_100000/
-    ├── summary.json                  # spot, net GEX, walls, zero gamma, regime
-    ├── gex_by_strike.csv             # call / put / net GEX and OI per strike
-    ├── contracts.csv                 # cleaned contracts with gamma and GEX
-    ├── gex_profile.csv               # total GEX at each hypothetical spot
-    └── gex.png                       # GEX by strike + GEX profile chart
+    ├── report.md                     # every metric, its value and a one-line explanation
+    ├── summary.json                  # all metrics, machine-readable
+    ├── gex_by_strike.csv             # call/put/net/abs GEX, DEX, vanna, charm, OI per strike
+    ├── contracts.csv                 # cleaned contracts with greeks and exposures
+    ├── gamma_profile.csv             # total net GEX at each hypothetical spot
+    ├── gex.png                       # GEX by strike, with walls, flip and expected-move band
+    └── gamma_profile.png             # net GEX vs. price (-10%..+10%), with flip and spot
 ```
 
-The combined summary table is also printed to the terminal:
+The terminal shows a combined table, followed by the changes since the previous run:
 
 ```
-Ticker   Spot Net GEX/1% Call wall Put wall Zero gamma   Regime Status
-   QQQ 600.12     $1.84B    610.00   590.00     596.40 positive     ok
-   NDX      -          -         -        -          -        -  error: ...
+Ticker     Spot Net GEX/1%         Regime Call wall Put wall Abs gamma Zero gamma        Exp. move P/C OI 25d skew           Status
+   QQQ   603.00     $1.84B positive gamma    610.00   590.00    600.00     596.40    596.10-609.90   1.31      4.2               ok
+  NDX* 24,700.0          - positive gamma  24,987.0 24,168.0  24,577.0   24,430.4  24,417.4-24,982.6  1.31      4.2 derived from QQQ
+
+* derived: levels mapped from a proxy by spot ratio (that ticker's own chain was unavailable)
+
+QQQ changes since 2026-10-15T14:00:00+00:00:
+  Call wall: 605.00 -> 610.00 (+5.00)
+  Zero gamma: 598.10 -> 596.40 (-1.70)
+  Net GEX: $1.20B -> $1.84B (+$640.0M)
 ```
 
-A ticker that fails (no options, a network error, or nothing left after cleaning) is recorded with its error. The remaining tickers still run. The exit code is non-zero only if every ticker fails.
+A ticker that fails is recorded with its error. The remaining tickers still run. The exit code is non-zero only if every ticker fails.
+
+**Derived NDX levels.** Yahoo often has no `^NDX` option chain. When a ticker's chain is unavailable and it has a proxy (`NDX → QQQ` and `SPX → SPY` by default; see `[proxies]` in the config), the tool computes the proxy and multiplies its price levels by `ticker spot / proxy spot`. The scaled levels are walls, the absolute gamma strike, the flip and the expected-move range. The result is clearly marked as derived:
+- `*` in the table and `derived from QQQ` in the status column
+- `"derived": true` in the JSON
+- a banner at the top of the report
+
+Dollar exposures are left empty because they don't carry over from one product to another.
 
 ## Method
 
-**Data cleaning.** Yahoo chains can be noisy, so contracts are dropped when:
-- open interest is missing or zero (below `min_open_interest`)
+### Data cleaning
+
+Contracts are dropped when:
+- open interest is zero or missing
 - IV is missing or outside `[min_iv, max_iv]`; this removes Yahoo's `0.00001` placeholder IVs
 - the strike is outside spot ± `strike_range_pct`
 - the contract has expired, meaning it is past 16:00 New York time on the expiration date
 
-Time to expiry runs to 16:00 ET on the expiration date and is floored at `min_t_days` (1 hour by default). Without the floor, same-day (0DTE) gamma blows up near the close.
+Time to expiry runs to 16:00 ET on the expiration date and is floored at `min_t_days` (1 hour by default) so 0DTE gamma stays finite.
 
-**Gamma.** Black-Scholes gamma with continuous dividend yield *q* and risk-free rate *r*:
+### Dealer convention
 
-γ = e^(−qT) · φ(d₁) / (S σ √T),  d₁ = [ln(S/K) + (r − q + σ²/2)T] / (σ√T)
+The usual GEX convention is used: **dealers are long calls and short puts**. The reasoning is that customers write covered calls (selling calls to dealers) and buy puts for protection (buying puts from dealers). Every exposure is computed as
 
-**GEX per contract.** This uses the common dealer convention: customers are net buyers of calls and net sellers of puts. Dealers are therefore long call gamma and short put gamma.
+```
+exposure = sign × greek × OI × 100 × scaling,    sign = +1 calls, −1 puts
+```
 
-GEX = sign × γ × OI × 100 × S² × 0.01,  sign = +1 for calls, −1 for puts
+| Exposure | Formula | Units |
+|---|---|---|
+| GEX | sign × γ × OI × 100 × S² × 0.01 | $ of delta to re-hedge per 1% move |
+| DEX | sign × Δ × OI × 100 × S | $ of delta held by dealers |
+| Vanna | sign × ∂Δ/∂σ × OI × 100 × S × 0.01 | $ delta change per +1 vol point |
+| Charm | sign × (−∂Δ/∂T) × OI × 100 × S / 365 | $ delta change per calendar day |
 
-The units are dollars of delta that dealers must trade for a 1% move in the underlying. Positive net GEX means dealers hedge against the move, which tends to dampen volatility. Negative net GEX means they hedge with the move, which tends to amplify it.
+The Greeks come from Black-Scholes with a risk-free rate *r* and a continuous dividend yield *q*:
+- d₁ = [ln(S/K) + (r − q + σ²/2)T] / (σ√T), and d₂ = d₁ − σ√T
+- γ = e^(−qT) φ(d₁) / (Sσ√T)
+- Δ = e^(−qT) N(d₁) for calls, and −e^(−qT) N(−d₁) for puts
+- vanna = −e^(−qT) φ(d₁) d₂ / σ
+- charm follows the standard closed form
 
-**Call wall.** The strike with the largest positive call GEX.
-**Put wall.** The strike with the largest negative put GEX.
+The tests check delta, vanna and charm against finite differences.
 
-**Zero-gamma flip.** The tool sweeps a grid of hypothetical spot prices (spot ± `sweep_pct`, `sweep_steps` points). At each price it recomputes every contract's gamma, holding IV, T and OI fixed, and sums the net GEX. The flip is where this profile crosses zero, found by linear interpolation; if there are several crossings, the one nearest the current spot is used. If the profile never crosses zero inside the range, the flip is reported as empty. **Regime** is `positive` when spot is above the flip and `negative` when it is below.
+### Metrics
 
-**Rate limiting.** The tool pauses between expiration requests (`pause_between_expirations`) and between tickers (`pause_between_tickers`). Failed requests are retried with exponential backoff (`max_retries`).
+- **Call walls / put walls (top 3).** The 3 strikes with the largest positive call GEX, and the 3 with the most negative put GEX.
+- **Absolute gamma strike.** The strike where |call GEX| + |put GEX| is largest.
+- **Gamma profile and zero-gamma flip.** The tool re-prices every contract's gamma at 201 spot prices from −10% to +10% (`sweep_pct`), holding IV, T and OI fixed. The flip is where total GEX crosses zero, found by linear interpolation; if there are several crossings, the one nearest spot is used.
+- **Regime.** `positive gamma` if net GEX at the current spot is ≥ 0, otherwise `negative gamma`. Each label comes with a one-line neutral description.
+- **Expiry concentration.** The share of total |GEX| expiring in four buckets that don't overlap:
+  - 0DTE (today)
+  - the rest of this week (through Sunday)
+  - the rest of this calendar month
+  - beyond
+
+  It also reports the net GEX, and the share of |GEX|, that expires *after* the next standard monthly expiry (the third Friday).
+- **Expected move.** The price of the nearest-expiry ATM straddle (call + put at the strike closest to spot). The tool uses the mid price, or the last trade if the quote is one-sided. It's shown as the range `spot ± move` and drawn as a shaded band on `gex.png`.
+- **Put/call OI ratio.** Total put OI divided by total call OI across all fetched expirations.
+- **25-delta skew.** IV(25Δ put) − IV(25Δ call) in vol points, using the expiry closest to 30 days. Each IV is interpolated in delta across strikes.
+
+### History
+
+Each run's summary is saved to `<output_dir>/history/<TICKER>_<timestamp>.json`; there is no database. On the next run, the tool finds the most recent earlier file for each ticker. It then prints, and adds to `report.md`, the change in:
+- call wall
+- put wall
+- zero gamma
+- absolute gamma strike
+- net GEX
+
+### Rate limiting
+
+The tool pauses between expiration requests and between tickers. Failed requests are retried with exponential backoff.
+
+## Glossary
+
+| Term | Meaning |
+|---|---|
+| **GEX (gamma exposure)** | How many dollars of the underlying dealers would need to buy or sell to stay hedged after a 1% price move. Positive: they trade against the move. Negative: they trade with it. |
+| **Call wall** | A strike with a large amount of dealer call gamma. Hedging flows there have tended to slow rallies. The tool reports the top three. |
+| **Put wall** | A strike with a large amount of dealer put gamma. Hedging flows there have tended to slow declines, or to accelerate them once the strike breaks. The tool reports the top three. |
+| **Zero-gamma (flip)** | The price at which total dealer gamma would change sign. It is the boundary between the positive and negative gamma regimes. |
+| **Absolute gamma strike** | The single strike with the most total gamma, calls and puts combined, regardless of sign. It often acts as a price magnet. |
+| **DEX (delta exposure)** | The dollar delta dealers hold from their options positions, which their stock hedge offsets. |
+| **Vanna** | How delta changes when implied volatility changes. Vanna exposure is the dollar delta dealers gain or lose when IV rises one point, so moves in volatility create hedging flows. |
+| **Charm** | How delta changes as time passes with price and IV unchanged. Charm exposure is the daily change in dealer dollar delta from time decay alone. It matters most near expiry. |
+| **Regime** | "Positive gamma" when net GEX at the current price is positive: dealer hedging tends to offset moves. "Negative gamma" when it is negative: hedging tends to reinforce moves. |
 
 ## Caveats
 
-- Yahoo open interest is updated once a day, so intraday GEX reflects the previous day's positioning.
+- Yahoo open interest is updated once a day, so intraday results reflect the previous day's positioning.
 - The dealer-positioning assumption is a convention, not observed data.
-- Yahoo IVs can be stale outside market hours, so results are most reliable during the session.
+- Yahoo IVs and quotes can be stale outside market hours. The expected move and skew are most reliable during the session.
 
 ## Development
 
@@ -100,10 +184,12 @@ The tests use synthetic chains and need no network access.
 
 ```
 src/gex/
-├── config.py   # TOML settings and ticker aliases
+├── config.py   # TOML settings, ticker aliases, proxies
 ├── data.py     # yfinance fetching, retries, cleaning, time to expiry
-├── greeks.py   # Black-Scholes gamma (vectorized)
-├── gex.py      # GEX per contract/strike, walls, profile, zero gamma
-├── plot.py     # charts
+├── greeks.py   # Black-Scholes gamma, delta, vanna, charm (vectorized)
+├── gex.py      # exposures, walls, profile, flip, expiry buckets, expected move, skew, proxy mapping
+├── history.py  # per-run JSON history and change detection
+├── report.py   # plain-English report.md
+├── plot.py     # gex.png and gamma_profile.png
 └── cli.py      # argument parsing, per-ticker runs, outputs
 ```

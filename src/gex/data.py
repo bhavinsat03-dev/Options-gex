@@ -55,6 +55,14 @@ def fetch_spot(tk, symbol: str, settings: Settings) -> float:
     return _retry(get, f"spot price for {symbol}", settings)
 
 
+def fetch_spot_only(ticker: str, settings: Settings) -> float:
+    """Spot price for ``ticker`` without touching its option chain."""
+    import yfinance as yf
+
+    symbol = settings.yahoo_symbol(ticker)
+    return fetch_spot(yf.Ticker(symbol), symbol, settings)
+
+
 def select_expirations(expirations, today: date, settings: Settings) -> list[str]:
     selected = []
     for exp in expirations:

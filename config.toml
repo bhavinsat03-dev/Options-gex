@@ -13,9 +13,12 @@ min_open_interest = 1
 min_iv = 0.01              # drop contracts with IV below 1% (Yahoo placeholder values)
 max_iv = 5.0               # ... or above 500%
 
-# Zero-gamma sweep: re-price the book from spot -15% to +15%
-sweep_pct = 0.15
-sweep_steps = 301
+# Gamma profile / zero-gamma sweep: re-price the book from spot -10% to +10%
+sweep_pct = 0.10
+sweep_steps = 201
+
+top_walls = 3              # how many call and put walls to report
+skew_target_days = 30      # 25-delta skew uses the expiry closest to this
 
 # Rate limiting (seconds)
 pause_between_expirations = 0.5
@@ -23,7 +26,13 @@ pause_between_tickers = 2.0
 max_retries = 3
 
 plots = true
+history = true             # save each run's summary to <output_dir>/history/
 
 # Map tickers to Yahoo symbols (NDX, SPX, RUT, VIX, XSP are mapped by default)
 [aliases]
 # NDX = "^NDX"
+
+# If a ticker's chains are unavailable, derive its levels from a proxy by
+# spot ratio (labelled as derived). NDX -> QQQ and SPX -> SPY by default.
+[proxies]
+# NDX = "QQQ"

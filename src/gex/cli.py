@@ -12,14 +12,17 @@ from pathlib import Path
 
 import pandas as pd
 
-from . import data, gex
+from . import data, gex, history, report
 from .config import Settings, load_settings
 
 log = logging.getLogger("gex")
 
 SUMMARY_COLUMNS = [
-    "ticker", "spot", "total_gex", "call_wall", "put_wall", "zero_gamma",
-    "regime", "contracts", "expirations", "status",
+    "ticker", "spot", "net_gex", "regime", "call_wall", "put_wall", "abs_gamma_strike",
+    "zero_gamma", "call_walls", "put_walls", "net_dex", "net_vanna", "net_charm",
+    "expected_move", "em_low", "em_high", "put_call_oi_ratio", "skew_25d",
+    "pct_0dte", "pct_this_week", "pct_this_month", "pct_beyond", "pct_after_monthly",
+    "source", "status",
 ]
 
 
@@ -35,6 +38,7 @@ def parse_args(argv=None) -> argparse.Namespace:
     p.add_argument("--max-expirations", type=int, help="cap on number of expirations per ticker")
     p.add_argument("--strike-range", type=float, help="keep strikes within spot +/- this fraction")
     p.add_argument("--no-plots", action="store_true", help="skip chart generation")
+    p.add_argument("--no-history", action="store_true", help="do not save or compare run history")
     p.add_argument("-v", "--verbose", action="store_true")
     return p.parse_args(argv)
 
@@ -53,89 +57,179 @@ def build_settings(args: argparse.Namespace) -> Settings:
         settings.strike_range_pct = args.strike_range
     if args.no_plots:
         settings.plots = False
+    if args.no_history:
+        settings.history = False
     return settings
 
 
-def run_ticker(ticker: str, settings: Settings, now: datetime, stamp: str, fetch=data.fetch_chain) -> dict:
-    spot, raw = fetch(ticker, settings, now)
-    chain = data.clean_chain(raw, spot, now, settings)
-    if chain.empty:
-        raise data.DataError("no contracts left after cleaning")
+class Runner:
+    """Runs tickers for one timestamped invocation and writes their outputs."""
 
-    result = gex.compute(
-        ticker, chain, spot,
-        r=settings.risk_free_rate, q=settings.dividend_yield,
-        sweep_pct=settings.sweep_pct, sweep_steps=settings.sweep_steps,
+    def __init__(self, settings: Settings, now: datetime, fetch=data.fetch_chain,
+                 fetch_spot=data.fetch_spot_only):
+        self.settings = settings
+        self.now = now
+        self.stamp = now.astimezone(data.NY).strftime("%Y%m%d_%H%M%S")
+        self.today = now.astimezone(data.NY).date()
+        self.root = Path(settings.output_dir)
+        self.history_dir = self.root / "history"
+        self.fetch = fetch
+        self.fetch_spot = fetch_spot
+        self.summaries: dict[str, dict] = {}
+        self.changes: dict[str, tuple[str, list[dict]]] = {}
+
+    def compute(self, ticker: str) -> dict:
+        """Full calculation from the ticker's own option chain."""
+        if ticker in self.summaries:
+            return self.summaries[ticker]
+        s = self.settings
+        spot, raw = self.fetch(ticker, s, self.now)
+        chain = data.clean_chain(raw, spot, self.now, s)
+        if chain.empty:
+            raise data.DataError("no contracts left after cleaning")
+
+        result = gex.compute(
+            ticker, chain, spot, self.today,
+            r=s.risk_free_rate, q=s.dividend_yield,
+            sweep_pct=s.sweep_pct, sweep_steps=s.sweep_steps,
+            n_walls=s.top_walls, skew_target_days=s.skew_target_days, raw=raw,
+        )
+        out_dir = self._out_dir(ticker)
+        result.by_strike.to_csv(out_dir / "gex_by_strike.csv", index=False)
+        result.contracts.to_csv(out_dir / "contracts.csv", index=False)
+        result.profile.to_csv(out_dir / "gamma_profile.csv", index=False)
+        if s.plots:
+            from .plot import plot_result
+
+            plot_result(result, out_dir)
+        return self._finish(result.summary(), out_dir)
+
+    def derive(self, ticker: str, proxy: str) -> dict:
+        """Levels for ``ticker`` mapped from ``proxy`` by spot ratio."""
+        proxy_summary = self.compute(proxy)
+        spot = self.fetch_spot(ticker, self.settings)
+        summary = gex.derive_summary(proxy_summary, ticker, spot)
+        return self._finish(summary, self._out_dir(ticker))
+
+    def run(self, ticker: str) -> dict:
+        try:
+            summary = self.compute(ticker)
+            return dict(summary, status="ok")
+        except Exception as exc:  # one bad ticker must not stop the rest
+            proxy = self.settings.proxies.get(ticker)
+            if not proxy or proxy == ticker:
+                log.error("%s: %s", ticker, exc)
+                return {"ticker": ticker, "status": f"error: {exc}"}
+            log.warning("%s: %s; deriving levels from %s", ticker, exc, proxy)
+            try:
+                summary = self.derive(ticker, proxy)
+                return dict(summary, status=f"derived from {proxy}")
+            except Exception as exc2:
+                log.error("%s: %s; derivation from %s failed: %s", ticker, exc, proxy, exc2)
+                return {"ticker": ticker, "status": f"error: {exc}; derive failed: {exc2}"}
+
+    def _out_dir(self, ticker: str) -> Path:
+        out_dir = self.root / ticker / self.stamp
+        out_dir.mkdir(parents=True, exist_ok=True)
+        return out_dir
+
+    def _finish(self, summary: dict, out_dir: Path) -> dict:
+        ticker = summary["ticker"]
+        summary["as_of"] = self.now.isoformat(timespec="seconds")
+        changes, previous_as_of = [], None
+        if self.settings.history:
+            previous = history.load_previous(self.history_dir, ticker, self.stamp)
+            if previous:
+                changes = history.diff(previous, summary)
+                previous_as_of = previous.get("as_of")
+                self.changes[ticker] = (previous_as_of, changes)
+            history.save(self.history_dir, summary, self.stamp)
+        (out_dir / "summary.json").write_text(json.dumps(summary, indent=2))
+        report.write(out_dir / "report.md", summary, changes, previous_as_of)
+        log.info("%s: wrote %s", ticker, out_dir)
+        self.summaries[ticker] = summary
+        return summary
+
+
+def flat_row(summary: dict) -> dict:
+    """Flatten a summary into one row of the combined table."""
+    row = {k: summary.get(k) for k in SUMMARY_COLUMNS}
+    if summary.get("status", "").startswith("error"):
+        return row
+    row["call_walls"] = " ".join(f"{k:g}" for k in summary.get("call_walls", []))
+    row["put_walls"] = " ".join(f"{k:g}" for k in summary.get("put_walls", []))
+    em = summary.get("expected_move")
+    if em:
+        row.update(expected_move=em["move"], em_low=em["low"], em_high=em["high"])
+    skew = summary.get("skew_25d")
+    row["skew_25d"] = skew["skew"] if skew else None
+    conc = summary.get("expiry_concentration") or {}
+    shares = conc.get("pct_abs_gex", {})
+    row.update(
+        pct_0dte=shares.get("0dte"), pct_this_week=shares.get("this_week"),
+        pct_this_month=shares.get("this_month"), pct_beyond=shares.get("beyond"),
+        pct_after_monthly=conc.get("pct_abs_gex_after_monthly"),
     )
-
-    out_dir = Path(settings.output_dir) / ticker / stamp
-    out_dir.mkdir(parents=True, exist_ok=True)
-    result.by_strike.to_csv(out_dir / "gex_by_strike.csv", index=False)
-    result.contracts.to_csv(out_dir / "contracts.csv", index=False)
-    result.profile.to_csv(out_dir / "gex_profile.csv", index=False)
-    summary = result.summary()
-    summary["as_of"] = now.isoformat(timespec="seconds")
-    (out_dir / "summary.json").write_text(json.dumps(summary, indent=2))
-    if settings.plots:
-        from .plot import plot_result
-
-        plot_result(result, out_dir / "gex.png")
-    log.info("%s: wrote %s", ticker, out_dir)
-    return summary
+    row["source"] = f"derived from {summary['derived_from']}" if summary.get("derived") else "chain"
+    return row
 
 
 def format_table(df: pd.DataFrame) -> str:
-    def money(x):
-        if pd.isna(x):
-            return "-"
-        return f"${x / 1e9:,.2f}B" if abs(x) >= 1e8 else f"${x / 1e6:,.1f}M"
+    def opt(fn):
+        return lambda x: "-" if pd.isna(x) else fn(x)
 
-    def num(x):
-        return "-" if pd.isna(x) else f"{x:,.2f}"
+    def em(r):
+        if pd.isna(r["em_low"]):
+            return "-"
+        return f"{r['em_low']:,.2f}-{r['em_high']:,.2f}"
 
     shown = pd.DataFrame({
-        "Ticker": df["ticker"],
-        "Spot": df["spot"].map(num),
-        "Net GEX/1%": df["total_gex"].map(money),
-        "Call wall": df["call_wall"].map(num),
-        "Put wall": df["put_wall"].map(num),
-        "Zero gamma": df["zero_gamma"].map(num),
+        "Ticker": df["ticker"] + df["source"].map(lambda s: "*" if str(s).startswith("derived") else ""),
+        "Spot": df["spot"].map(opt(report.num)),
+        "Net GEX/1%": df["net_gex"].map(opt(report.money)),
         "Regime": df["regime"].fillna("-"),
+        "Call wall": df["call_wall"].map(opt(report.num)),
+        "Put wall": df["put_wall"].map(opt(report.num)),
+        "Abs gamma": df["abs_gamma_strike"].map(opt(report.num)),
+        "Zero gamma": df["zero_gamma"].map(opt(report.num)),
+        "Exp. move": df.apply(em, axis=1),
+        "P/C OI": df["put_call_oi_ratio"].map(opt(report.num)),
+        "25d skew": df["skew_25d"].map(opt(lambda x: f"{x:.1f}")),
         "Status": df["status"],
     })
     return shown.to_string(index=False)
 
 
-def main(argv=None, fetch=data.fetch_chain, now: datetime | None = None) -> int:
+def main(argv=None, fetch=data.fetch_chain, fetch_spot=data.fetch_spot_only,
+         now: datetime | None = None) -> int:
     args = parse_args(argv)
     logging.basicConfig(
         level=logging.INFO if args.verbose else logging.WARNING,
         format="%(levelname)s %(name)s: %(message)s",
     )
     settings = build_settings(args)
-    now = now or datetime.now(timezone.utc)
-    stamp = now.astimezone(data.NY).strftime("%Y%m%d_%H%M%S")
+    runner = Runner(settings, now or datetime.now(timezone.utc), fetch, fetch_spot)
 
     rows = []
     for i, ticker in enumerate(settings.tickers):
         if i:
             time.sleep(settings.pause_between_tickers)
-        try:
-            row = run_ticker(ticker, settings, now, stamp, fetch)
-            row["status"] = "ok"
-        except Exception as exc:  # one bad ticker must not stop the rest
-            log.error("%s: %s", ticker, exc)
-            row = {"ticker": ticker, "status": f"error: {exc}"}
-        rows.append(row)
+        rows.append(flat_row(runner.run(ticker)))
 
     table = pd.DataFrame(rows).reindex(columns=SUMMARY_COLUMNS)
-    root = Path(settings.output_dir)
-    root.mkdir(parents=True, exist_ok=True)
-    table.to_csv(root / f"summary_{stamp}.csv", index=False)
+    runner.root.mkdir(parents=True, exist_ok=True)
+    table.to_csv(runner.root / f"summary_{runner.stamp}.csv", index=False)
 
     print(format_table(table))
-    print(f"\nOutputs written to {root.resolve()}")
-    return 0 if (table["status"] == "ok").any() else 1
+    if table["source"].astype(str).str.startswith("derived").any():
+        print("\n* derived: levels mapped from a proxy by spot ratio (that ticker's own chain was unavailable)")
+    for ticker, (previous_as_of, changes) in runner.changes.items():
+        if ticker in settings.tickers and changes:
+            print(f"\n{ticker} changes since {previous_as_of}:")
+            for line in report.format_changes(changes):
+                print(f"  {line}")
+    print(f"\nOutputs written to {runner.root.resolve()}")
+    return 0 if table["status"].astype(str).map(lambda s: not s.startswith("error")).any() else 1
 
 
 if __name__ == "__main__":

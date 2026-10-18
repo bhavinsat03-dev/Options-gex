@@ -1,90 +1,134 @@
-"""Gamma exposure calculations.
+"""Exposure calculations: GEX, DEX, vanna, charm and derived levels.
 
-Dealer convention (the common SpotGamma-style assumption): customers buy
-calls and sell puts, so dealers are long call gamma and short put gamma.
+Dealer convention (the common SpotGamma-style assumption): customers are
+net sellers of calls (covered-call writing) and net buyers of puts
+(protection), so dealers are LONG calls and SHORT puts. Every exposure is
 
-    GEX = sign * gamma * open_interest * multiplier * spot^2 * 0.01
+    dealer_sign * greek * open_interest * multiplier * scaling
 
-with sign = +1 for calls and -1 for puts. The result is the dollar delta
-dealers must trade for a 1% move in the underlying.
+with dealer_sign = +1 for calls and -1 for puts:
+
+    GEX   = sign * gamma * OI * 100 * S^2 * 0.01   $ delta per 1% move in spot
+    DEX   = sign * delta * OI * 100 * S            $ delta held by dealers
+    Vanna = sign * vanna * OI * 100 * S * 0.01     $ delta change per +1 vol point
+    Charm = sign * charm * OI * 100 * S / 365      $ delta change per calendar day
 """
 
 from __future__ import annotations
 
+import calendar
 from dataclasses import dataclass, field
+from datetime import date, timedelta
 
 import numpy as np
 import pandas as pd
 
-from .greeks import bs_gamma
+from .greeks import bs_charm, bs_delta, bs_gamma, bs_vanna
 
 CONTRACT_MULTIPLIER = 100
 CALL_SIGN = 1.0
 PUT_SIGN = -1.0
+
+REGIME_DESCRIPTIONS = {
+    "positive gamma": (
+        "Dealer hedging tends to offset price moves, a condition historically "
+        "associated with lower realized volatility."
+    ),
+    "negative gamma": (
+        "Dealer hedging tends to reinforce price moves, a condition historically "
+        "associated with higher realized volatility."
+    ),
+}
 
 
 def _signs(option_type: pd.Series) -> np.ndarray:
     return np.where(option_type.to_numpy() == "call", CALL_SIGN, PUT_SIGN)
 
 
-def contract_gex(chain: pd.DataFrame, spot: float, r: float = 0.0, q: float = 0.0) -> pd.DataFrame:
-    """Return a copy of ``chain`` with ``gamma`` and ``gex`` columns added.
+def _expiry_date(value) -> date:
+    return value if isinstance(value, date) else date.fromisoformat(str(value))
+
+
+# ---------------------------------------------------------------- per contract
+
+def contract_exposures(chain: pd.DataFrame, spot: float, r: float = 0.0, q: float = 0.0) -> pd.DataFrame:
+    """Return a copy of ``chain`` with greeks and dealer exposures added.
 
     ``chain`` needs columns: type ('call'/'put'), strike, t (years), iv,
     open_interest.
     """
     out = chain.copy()
-    out["gamma"] = bs_gamma(spot, out["strike"], out["t"], out["iv"], r, q)
-    out["gex"] = (
-        _signs(out["type"])
-        * out["gamma"]
-        * out["open_interest"]
-        * CONTRACT_MULTIPLIER
-        * spot**2
-        * 0.01
-    )
+    is_call = out["type"].to_numpy() == "call"
+    args = (spot, out["strike"], out["t"], out["iv"])
+    out["gamma"] = bs_gamma(*args, r, q)
+    out["delta"] = bs_delta(*args, is_call, r, q)
+    out["vanna"] = bs_vanna(*args, r, q)
+    out["charm"] = bs_charm(*args, is_call, r, q)
+
+    size = _signs(out["type"]) * out["open_interest"].to_numpy(dtype=float) * CONTRACT_MULTIPLIER
+    out["gex"] = size * out["gamma"] * spot**2 * 0.01
+    out["dex"] = size * out["delta"] * spot
+    out["vanna_exp"] = size * out["vanna"] * spot * 0.01
+    out["charm_exp"] = size * out["charm"] * spot / 365.0
     return out
 
 
-def gex_by_strike(contracts: pd.DataFrame) -> pd.DataFrame:
-    """Aggregate per-contract GEX into call / put / net GEX per strike."""
-    pivot = contracts.pivot_table(
-        index="strike", columns="type", values="gex", aggfunc="sum", fill_value=0.0
-    )
-    by_strike = pd.DataFrame(index=pivot.index)
-    by_strike["call_gex"] = pivot["call"] if "call" in pivot else 0.0
-    by_strike["put_gex"] = pivot["put"] if "put" in pivot else 0.0
-    by_strike["net_gex"] = by_strike["call_gex"] + by_strike["put_gex"]
+# ------------------------------------------------------------------ by strike
 
-    oi = contracts.pivot_table(
-        index="strike", columns="type", values="open_interest", aggfunc="sum", fill_value=0
+def gex_by_strike(contracts: pd.DataFrame) -> pd.DataFrame:
+    """Aggregate per-contract exposures by strike."""
+    calls = contracts["type"] == "call"
+    c = contracts.assign(
+        call_gex=contracts["gex"].where(calls, 0.0),
+        put_gex=contracts["gex"].where(~calls, 0.0),
+        call_oi=contracts["open_interest"].where(calls, 0),
+        put_oi=contracts["open_interest"].where(~calls, 0),
     )
-    by_strike["call_oi"] = oi["call"] if "call" in oi else 0
-    by_strike["put_oi"] = oi["put"] if "put" in oi else 0
-    return by_strike.reset_index().sort_values("strike", ignore_index=True)
+    cols = ["call_gex", "put_gex", "dex", "vanna_exp", "charm_exp", "call_oi", "put_oi"]
+    by = c.groupby("strike", as_index=False)[cols].sum()
+    by.insert(3, "net_gex", by["call_gex"] + by["put_gex"])
+    by.insert(4, "abs_gex", by["call_gex"].abs() + by["put_gex"].abs())
+    return by.sort_values("strike", ignore_index=True)
+
+
+def top_call_walls(by_strike: pd.DataFrame, n: int = 3) -> list[float]:
+    """Strikes with the largest positive call GEX, strongest first."""
+    pos = by_strike[by_strike["call_gex"] > 0]
+    return [float(k) for k in pos.nlargest(n, "call_gex")["strike"]]
+
+
+def top_put_walls(by_strike: pd.DataFrame, n: int = 3) -> list[float]:
+    """Strikes with the most negative put GEX, strongest first."""
+    neg = by_strike[by_strike["put_gex"] < 0]
+    return [float(k) for k in neg.nsmallest(n, "put_gex")["strike"]]
 
 
 def call_wall(by_strike: pd.DataFrame) -> float | None:
-    """Strike with the largest positive call GEX."""
-    if by_strike.empty or not (by_strike["call_gex"] > 0).any():
-        return None
-    return float(by_strike.loc[by_strike["call_gex"].idxmax(), "strike"])
+    walls = top_call_walls(by_strike, 1)
+    return walls[0] if walls else None
 
 
 def put_wall(by_strike: pd.DataFrame) -> float | None:
-    """Strike with the largest (most negative) put GEX."""
-    if by_strike.empty or not (by_strike["put_gex"] < 0).any():
-        return None
-    return float(by_strike.loc[by_strike["put_gex"].idxmin(), "strike"])
+    walls = top_put_walls(by_strike, 1)
+    return walls[0] if walls else None
 
+
+def absolute_gamma_strike(by_strike: pd.DataFrame) -> float | None:
+    """Strike with the largest |call GEX| + |put GEX|."""
+    if by_strike.empty or not (by_strike["abs_gex"] > 0).any():
+        return None
+    return float(by_strike.loc[by_strike["abs_gex"].idxmax(), "strike"])
+
+
+# ---------------------------------------------------------- profile and flip
 
 def gex_profile(
     chain: pd.DataFrame,
     spot: float,
     r: float = 0.0,
     q: float = 0.0,
-    sweep_pct: float = 0.15,
-    steps: int = 301,
+    sweep_pct: float = 0.10,
+    steps: int = 201,
 ) -> pd.DataFrame:
     """Total net GEX re-evaluated at hypothetical spot levels.
 
@@ -126,34 +170,214 @@ def zero_gamma(profile: pd.DataFrame, spot: float) -> float | None:
     return float(min(crossings, key=lambda c: abs(c - spot)))
 
 
+def regime(net_gex: float) -> str:
+    return "positive gamma" if net_gex >= 0 else "negative gamma"
+
+
+# ------------------------------------------------------- expiry concentration
+
+def third_friday(year: int, month: int) -> date:
+    first = date(year, month, 1)
+    first_friday = first + timedelta(days=(calendar.FRIDAY - first.weekday()) % 7)
+    return first_friday + timedelta(weeks=2)
+
+
+def next_monthly_expiry(today: date) -> date:
+    """Standard monthly expiry (third Friday) on or after ``today``.
+
+    When the exchange moves it to Thursday for a holiday, contracts
+    expiring that Thursday still fall on or before this date.
+    """
+    tf = third_friday(today.year, today.month)
+    if tf >= today:
+        return tf
+    year, month = (today.year + 1, 1) if today.month == 12 else (today.year, today.month + 1)
+    return third_friday(year, month)
+
+
+def expiry_bucket(expiration: date, today: date) -> str:
+    week_end = today + timedelta(days=6 - today.weekday())  # Sunday
+    if expiration <= today:
+        return "0dte"
+    if expiration <= week_end:
+        return "this_week"
+    if (expiration.year, expiration.month) == (today.year, today.month):
+        return "this_month"
+    return "beyond"
+
+
+def expiry_concentration(contracts: pd.DataFrame, today: date) -> dict:
+    """Share of total |GEX| by expiry bucket, and GEX left after the next monthly.
+
+    Buckets do not overlap: 0DTE, rest of this week (through Sunday), rest
+    of this calendar month, and everything later.
+    """
+    exps = contracts["expiration"].map(_expiry_date)
+    abs_gex = contracts["gex"].abs()
+    total_abs = abs_gex.sum()
+    buckets = exps.map(lambda e: expiry_bucket(e, today))
+    shares = {
+        b: (float(abs_gex[buckets == b].sum() / total_abs * 100) if total_abs else 0.0)
+        for b in ("0dte", "this_week", "this_month", "beyond")
+    }
+
+    monthly = next_monthly_expiry(today)
+    after = exps > monthly
+    return {
+        "pct_abs_gex": shares,
+        "next_monthly_expiry": monthly.isoformat(),
+        "net_gex_after_monthly": float(contracts.loc[after, "gex"].sum()),
+        "pct_abs_gex_after_monthly": (
+            float(abs_gex[after].sum() / total_abs * 100) if total_abs else 0.0
+        ),
+    }
+
+
+# ---------------------------------------------------------------- vol metrics
+
+def option_price(bid, ask, last) -> float | None:
+    """Mid when the quote is two-sided and sane, otherwise last trade."""
+    if pd.notna(bid) and pd.notna(ask) and bid > 0 and ask >= bid:
+        return float((bid + ask) / 2)
+    if pd.notna(last) and last > 0:
+        return float(last)
+    return None
+
+
+def expected_move(chain: pd.DataFrame, spot: float) -> dict | None:
+    """Expected move from the nearest-expiry at-the-money straddle.
+
+    move = ATM call price + ATM put price; range = spot +/- move. The ATM
+    strike is the strike nearest spot that has a priced call and put.
+    """
+    if chain.empty:
+        return None
+    nearest = chain.loc[chain["t"].idxmin(), "expiration"]
+    exp = chain[chain["expiration"] == nearest]
+
+    priced = {}
+    for _, row in exp.iterrows():
+        price = option_price(row.get("bid"), row.get("ask"), row.get("last"))
+        if price is not None:
+            priced[(row["type"], float(row["strike"]))] = price
+    strikes = sorted(
+        {k for (typ, k) in priced if typ == "call"} & {k for (typ, k) in priced if typ == "put"},
+        key=lambda k: abs(k - spot),
+    )
+    if not strikes:
+        return None
+    k = strikes[0]
+    call, put = priced[("call", k)], priced[("put", k)]
+    move = call + put
+    return {
+        "expiration": str(nearest),
+        "strike": k,
+        "call_price": call,
+        "put_price": put,
+        "move": move,
+        "move_pct": move / spot * 100,
+        "low": spot - move,
+        "high": spot + move,
+    }
+
+
+def put_call_oi_ratio(df: pd.DataFrame) -> float | None:
+    oi = pd.to_numeric(df["open_interest"], errors="coerce").fillna(0)
+    calls = oi[df["type"] == "call"].sum()
+    puts = oi[df["type"] == "put"].sum()
+    return float(puts / calls) if calls > 0 else None
+
+
+def skew_25d(
+    chain: pd.DataFrame, spot: float, r: float = 0.0, q: float = 0.0, target_days: float = 30
+) -> dict | None:
+    """25-delta risk reversal skew: IV(25d put) - IV(25d call), in vol points.
+
+    Uses the expiration closest to ``target_days``; each 25-delta IV is
+    linearly interpolated in delta across that expiry's strikes.
+    """
+    if chain.empty:
+        return None
+    t_by_exp = chain.groupby("expiration")["t"].first()
+    exp = (t_by_exp * 365 - target_days).abs().idxmin()
+    sub = chain[chain["expiration"] == exp]
+    is_call = sub["type"].to_numpy() == "call"
+    delta = bs_delta(spot, sub["strike"], sub["t"], sub["iv"], is_call, r, q)
+
+    def iv_at(mask, target):
+        d, v = delta[mask], sub["iv"].to_numpy()[mask]
+        if len(d) < 2 or not (d.min() <= target <= d.max()):
+            return None
+        order = np.argsort(d)
+        return float(np.interp(target, d[order], v[order]))
+
+    put_iv, call_iv = iv_at(~is_call, -0.25), iv_at(is_call, 0.25)
+    if put_iv is None or call_iv is None:
+        return None
+    return {
+        "expiration": str(exp),
+        "days": float(t_by_exp[exp] * 365),
+        "put_iv": put_iv,
+        "call_iv": call_iv,
+        "skew": (put_iv - call_iv) * 100,
+    }
+
+
+# ------------------------------------------------------------------- results
+
 @dataclass
 class GexResult:
     ticker: str
     spot: float
+    today: date
     contracts: pd.DataFrame
     by_strike: pd.DataFrame
     profile: pd.DataFrame
     total_gex: float
-    call_wall: float | None
-    put_wall: float | None
+    call_walls: list[float]
+    put_walls: list[float]
+    abs_gamma_strike: float | None
     zero_gamma: float | None
+    expected_move: dict | None
+    put_call_oi_ratio: float | None
+    skew_25d: dict | None
+    expiry_concentration: dict
     expirations: list[str] = field(default_factory=list)
 
     @property
+    def call_wall(self) -> float | None:
+        return self.call_walls[0] if self.call_walls else None
+
+    @property
+    def put_wall(self) -> float | None:
+        return self.put_walls[0] if self.put_walls else None
+
+    @property
     def regime(self) -> str:
-        if self.zero_gamma is None:
-            return "positive" if self.total_gex >= 0 else "negative"
-        return "positive" if self.spot >= self.zero_gamma else "negative"
+        return regime(self.total_gex)
 
     def summary(self) -> dict:
         return {
             "ticker": self.ticker,
             "spot": round(self.spot, 4),
-            "total_gex": self.total_gex,
+            "derived": False,
+            "derived_from": None,
+            "net_gex": self.total_gex,
+            "regime": self.regime,
+            "regime_description": REGIME_DESCRIPTIONS[self.regime],
             "call_wall": self.call_wall,
             "put_wall": self.put_wall,
+            "call_walls": self.call_walls,
+            "put_walls": self.put_walls,
+            "abs_gamma_strike": self.abs_gamma_strike,
             "zero_gamma": None if self.zero_gamma is None else round(self.zero_gamma, 2),
-            "regime": self.regime,
+            "net_dex": float(self.contracts["dex"].sum()),
+            "net_vanna": float(self.contracts["vanna_exp"].sum()),
+            "net_charm": float(self.contracts["charm_exp"].sum()),
+            "expected_move": self.expected_move,
+            "put_call_oi_ratio": self.put_call_oi_ratio,
+            "skew_25d": self.skew_25d,
+            "expiry_concentration": self.expiry_concentration,
             "contracts": len(self.contracts),
             "expirations": len(self.expirations),
         }
@@ -163,24 +387,84 @@ def compute(
     ticker: str,
     chain: pd.DataFrame,
     spot: float,
+    today: date,
     r: float = 0.0,
     q: float = 0.0,
-    sweep_pct: float = 0.15,
-    sweep_steps: int = 301,
+    sweep_pct: float = 0.10,
+    sweep_steps: int = 201,
+    n_walls: int = 3,
+    skew_target_days: float = 30,
+    raw: pd.DataFrame | None = None,
 ) -> GexResult:
-    contracts = contract_gex(chain, spot, r, q)
+    """Compute every metric for one ticker.
+
+    ``chain`` is the cleaned chain; ``raw`` (optional) is the full fetched
+    chain, used only for the put/call open-interest ratio.
+    """
+    contracts = contract_exposures(chain, spot, r, q)
     by_strike = gex_by_strike(contracts)
     profile = gex_profile(chain, spot, r, q, sweep_pct, sweep_steps)
-    expirations = sorted({str(e) for e in chain["expiration"]}) if "expiration" in chain else []
     return GexResult(
         ticker=ticker,
         spot=spot,
+        today=today,
         contracts=contracts,
         by_strike=by_strike,
         profile=profile,
         total_gex=float(contracts["gex"].sum()),
-        call_wall=call_wall(by_strike),
-        put_wall=put_wall(by_strike),
+        call_walls=top_call_walls(by_strike, n_walls),
+        put_walls=top_put_walls(by_strike, n_walls),
+        abs_gamma_strike=absolute_gamma_strike(by_strike),
         zero_gamma=zero_gamma(profile, spot),
-        expirations=expirations,
+        expected_move=expected_move(chain, spot),
+        put_call_oi_ratio=put_call_oi_ratio(raw if raw is not None else chain),
+        skew_25d=skew_25d(chain, spot, r, q, skew_target_days),
+        expiry_concentration=expiry_concentration(contracts, today),
+        expirations=sorted({str(e) for e in chain["expiration"]}),
     )
+
+
+# -------------------------------------------------------------- proxy levels
+
+PRICE_LEVELS = ("call_wall", "put_wall", "abs_gamma_strike", "zero_gamma")
+DOLLAR_EXPOSURES = ("net_gex", "net_dex", "net_vanna", "net_charm")
+
+
+def derive_summary(proxy: dict, ticker: str, spot: float) -> dict:
+    """Map a proxy's levels (e.g. QQQ) onto ``ticker`` (e.g. NDX) by spot ratio.
+
+    Price levels are scaled by spot / proxy_spot. Dollar exposures are not
+    transferable and are set to None; ratios and percentages (regime, P/C,
+    skew, expiry concentration) are carried over from the proxy as-is.
+    """
+    ratio = spot / proxy["spot"]
+    out = dict(proxy)
+    out.update(
+        ticker=ticker,
+        spot=round(spot, 4),
+        derived=True,
+        derived_from=proxy["ticker"],
+        derived_ratio=ratio,
+    )
+    for key in PRICE_LEVELS:
+        if proxy.get(key) is not None:
+            out[key] = round(proxy[key] * ratio, 2)
+    out["call_walls"] = [round(k * ratio, 2) for k in proxy.get("call_walls", [])]
+    out["put_walls"] = [round(k * ratio, 2) for k in proxy.get("put_walls", [])]
+    for key in DOLLAR_EXPOSURES:
+        out[key] = None
+    em = proxy.get("expected_move")
+    if em:
+        out["expected_move"] = dict(
+            em,
+            strike=round(em["strike"] * ratio, 2),
+            move=em["move"] * ratio,
+            low=em["low"] * ratio,
+            high=em["high"] * ratio,
+            call_price=None,
+            put_price=None,
+        )
+    exp_conc = proxy.get("expiry_concentration")
+    if exp_conc:
+        out["expiry_concentration"] = dict(exp_conc, net_gex_after_monthly=None)
+    return out

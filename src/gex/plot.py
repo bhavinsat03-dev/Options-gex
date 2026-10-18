@@ -49,40 +49,67 @@ def _level(ax, x, label, style, color=INK_SECONDARY):
     ax.axvline(x, color=color, linestyle=style, linewidth=1.5, label=f"{label} {x:,.2f}")
 
 
-def plot_result(result: GexResult, path: Path) -> Path:
-    bs = result.by_strike
-    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 9), facecolor=SURFACE)
+def _new_axes(height: float = 5.5):
+    fig, ax = plt.subplots(figsize=(12, height), facecolor=SURFACE)
+    return fig, ax
 
-    width = (bs["strike"].diff().median() if len(bs) > 1 else 1.0) * 0.8
-    ax1.bar(bs["strike"], bs["call_gex"], width=width, color=CALL, label="Call GEX")
-    ax1.bar(bs["strike"], bs["put_gex"], width=width, color=PUT, label="Put GEX")
-    ax1.plot(bs["strike"], bs["net_gex"], color=INK, linewidth=2, label="Net GEX")
-    _style(ax1)
-    _level(ax1, result.spot, "Spot", "-")
-    _level(ax1, result.call_wall, "Call wall", "--", CALL)
-    _level(ax1, result.put_wall, "Put wall", "--", PUT)
-    _level(ax1, result.zero_gamma, "Zero γ", ":")
-    ax1.set_title(
-        f"{result.ticker} gamma exposure by strike ($ per 1% move)",
-        loc="left", color=INK, fontsize=12,
-    )
-    ax1.set_xlabel("Strike", color=INK_SECONDARY)
-    ax1.legend(frameon=False, fontsize=9, loc="lower left", ncols=2)
 
-    prof = result.profile
-    ax2.plot(prof["spot"], prof["net_gex"], color=INK, linewidth=2, label="Net GEX")
-    ax2.fill_between(prof["spot"], prof["net_gex"], 0, where=prof["net_gex"] >= 0,
-                     color=CALL, alpha=0.15, linewidth=0)
-    ax2.fill_between(prof["spot"], prof["net_gex"], 0, where=prof["net_gex"] < 0,
-                     color=PUT, alpha=0.15, linewidth=0)
-    _style(ax2)
-    _level(ax2, result.spot, "Spot", "-")
-    _level(ax2, result.zero_gamma, "Zero γ", ":")
-    ax2.set_title("Total net GEX vs. underlying price", loc="left", color=INK, fontsize=12)
-    ax2.set_xlabel("Underlying price", color=INK_SECONDARY)
-    ax2.legend(frameon=False, fontsize=9, loc="lower right")
-
+def _save(fig, path: Path) -> Path:
     fig.tight_layout()
     fig.savefig(path, dpi=120, facecolor=SURFACE)
     plt.close(fig)
     return path
+
+
+def plot_gex_by_strike(result: GexResult, path: Path) -> Path:
+    bs = result.by_strike
+    fig, ax = _new_axes(6.5)
+
+    em = result.expected_move
+    if em:
+        ax.axvspan(em["low"], em["high"], color=GRID, alpha=0.6, linewidth=0,
+                   label=f"Expected move {em['low']:,.2f}–{em['high']:,.2f} (exp {em['expiration']})")
+
+    width = (bs["strike"].diff().median() if len(bs) > 1 else 1.0) * 0.8
+    ax.bar(bs["strike"], bs["call_gex"], width=width, color=CALL, label="Call GEX")
+    ax.bar(bs["strike"], bs["put_gex"], width=width, color=PUT, label="Put GEX")
+    ax.plot(bs["strike"], bs["net_gex"], color=INK, linewidth=2, label="Net GEX")
+    _style(ax)
+    _level(ax, result.spot, "Spot", "-")
+    _level(ax, result.call_wall, "Call wall", "--", CALL)
+    _level(ax, result.put_wall, "Put wall", "--", PUT)
+    _level(ax, result.abs_gamma_strike, "Abs gamma", "-.")
+    _level(ax, result.zero_gamma, "Zero γ", ":")
+    ax.set_title(f"{result.ticker} gamma exposure by strike ($ per 1% move)",
+                 loc="left", color=INK, fontsize=12)
+    ax.set_xlabel("Strike", color=INK_SECONDARY)
+    ax.legend(frameon=False, fontsize=9, loc="upper center", bbox_to_anchor=(0.5, -0.13), ncols=4)
+    return _save(fig, path)
+
+
+def plot_gamma_profile(result: GexResult, path: Path) -> Path:
+    prof = result.profile
+    fig, ax = _new_axes()
+    ax.plot(prof["spot"], prof["net_gex"], color=INK, linewidth=2, label="Net GEX")
+    ax.fill_between(prof["spot"], prof["net_gex"], 0, where=prof["net_gex"] >= 0,
+                    color=CALL, alpha=0.15, linewidth=0, label="Positive gamma")
+    ax.fill_between(prof["spot"], prof["net_gex"], 0, where=prof["net_gex"] < 0,
+                    color=PUT, alpha=0.15, linewidth=0, label="Negative gamma")
+    _style(ax)
+    _level(ax, result.spot, "Spot", "-")
+    _level(ax, result.zero_gamma, "Zero γ", ":")
+    lo, hi = prof["spot"].iloc[0], prof["spot"].iloc[-1]
+    ax.set_title(f"{result.ticker} gamma profile: total net GEX vs. price "
+                 f"({lo / result.spot - 1:+.0%} to {hi / result.spot - 1:+.0%})",
+                 loc="left", color=INK, fontsize=12)
+    ax.set_xlabel("Underlying price", color=INK_SECONDARY)
+    ax.legend(frameon=False, fontsize=9, loc="lower right")
+    return _save(fig, path)
+
+
+def plot_result(result: GexResult, out_dir: Path) -> list[Path]:
+    out_dir = Path(out_dir)
+    return [
+        plot_gex_by_strike(result, out_dir / "gex.png"),
+        plot_gamma_profile(result, out_dir / "gamma_profile.png"),
+    ]

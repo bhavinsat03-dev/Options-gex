@@ -229,6 +229,11 @@ def main(argv=None, fetch=data.fetch_chain, fetch_spot=data.fetch_spot_only,
             print(f"\n{ticker} changes since {previous_as_of}:")
             for line in report.format_changes(changes):
                 print(f"  {line}")
+    for summary in runner.summaries.values():
+        if summary["ticker"] in settings.tickers and summary.get("call_wall_expiries"):
+            print(f"\n{summary['ticker']} wall expiries:")
+            print(f"  Calls: {report.wall_expiry_text(summary['call_wall_expiries'])}")
+            print(f"  Puts:  {report.wall_expiry_text(summary.get('put_wall_expiries'))}")
     print(f"\nOutputs written to {runner.root.resolve()}")
     return 0 if table["status"].astype(str).map(lambda s: not s.startswith("error")).any() else 1
 

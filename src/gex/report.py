@@ -31,6 +31,16 @@ def levels(xs) -> str:
     return ", ".join(num(x) for x in xs) if xs else "n/a"
 
 
+def wall_expiry_text(walls) -> str:
+    """'800: 2026-11-20 62%, 2026-10-23 20%; 750: ...'"""
+    if not walls:
+        return "n/a"
+    return "; ".join(
+        f"{num(w['strike'])}: " + (", ".join(f"{e['expiration']} {e['pct']:.0f}%" for e in w["expiries"]) or "n/a")
+        for w in walls
+    )
+
+
 def _signed(x, money_fmt: bool) -> str:
     text = money(x) if money_fmt else num(x)
     return text if x < 0 else "+" + text
@@ -62,6 +72,10 @@ def metric_rows(s: dict) -> list[tuple[str, str, str]]:
          "Strikes holding the most dealer call gamma, where hedging flows have tended to slow rallies."),
         ("Put walls (top 3)", levels(s.get("put_walls")),
          "Strikes holding the most dealer put gamma, where hedging flows have tended to slow or, if broken, accelerate declines."),
+        ("Call wall expiries", wall_expiry_text(s.get("call_wall_expiries")),
+         "For each call wall, the expirations holding most of its gamma and their share; a wall made of near-dated options disappears when they expire."),
+        ("Put wall expiries", wall_expiry_text(s.get("put_wall_expiries")),
+         "For each put wall, the expirations holding most of its gamma and their share."),
         ("Absolute gamma strike", num(s.get("abs_gamma_strike")),
          "The single strike with the most total gamma (calls plus puts), often the strongest price magnet."),
         ("Zero-gamma flip", num(s.get("zero_gamma")),

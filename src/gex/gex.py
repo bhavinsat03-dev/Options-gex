@@ -113,6 +113,26 @@ def put_wall(by_strike: pd.DataFrame) -> float | None:
     return walls[0] if walls else None
 
 
+def wall_expiries(contracts: pd.DataFrame, strikes: list[float], option_type: str, top: int = 3) -> list[dict]:
+    """For each wall strike, the expirations contributing most of its GEX.
+
+    Returns ``[{"strike", "expiries": [{"expiration", "pct"}, ...]}]`` where
+    pct is that expiration's share of the strike's call (or put) |GEX|.
+    """
+    side = contracts[contracts["type"] == option_type]
+    out = []
+    for k in strikes:
+        at = side[side["strike"] == k]
+        by_exp = at.groupby("expiration")["gex"].sum().abs()
+        total = by_exp.sum()
+        expiries = [
+            {"expiration": str(e), "pct": float(v / total * 100)}
+            for e, v in by_exp.nlargest(top).items()
+        ] if total else []
+        out.append({"strike": k, "expiries": expiries})
+    return out
+
+
 def absolute_gamma_strike(by_strike: pd.DataFrame) -> float | None:
     """Strike with the largest |call GEX| + |put GEX|."""
     if by_strike.empty or not (by_strike["abs_gex"] > 0).any():
@@ -369,6 +389,8 @@ class GexResult:
             "put_wall": self.put_wall,
             "call_walls": self.call_walls,
             "put_walls": self.put_walls,
+            "call_wall_expiries": wall_expiries(self.contracts, self.call_walls, "call"),
+            "put_wall_expiries": wall_expiries(self.contracts, self.put_walls, "put"),
             "abs_gamma_strike": self.abs_gamma_strike,
             "zero_gamma": None if self.zero_gamma is None else round(self.zero_gamma, 2),
             "net_dex": float(self.contracts["dex"].sum()),
@@ -451,6 +473,8 @@ def derive_summary(proxy: dict, ticker: str, spot: float) -> dict:
             out[key] = round(proxy[key] * ratio, 2)
     out["call_walls"] = [round(k * ratio, 2) for k in proxy.get("call_walls", [])]
     out["put_walls"] = [round(k * ratio, 2) for k in proxy.get("put_walls", [])]
+    for key in ("call_wall_expiries", "put_wall_expiries"):
+        out[key] = [dict(w, strike=round(w["strike"] * ratio, 2)) for w in proxy.get(key, [])]
     for key in DOLLAR_EXPOSURES:
         out[key] = None
     em = proxy.get("expected_move")

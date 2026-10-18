@@ -250,3 +250,25 @@ def test_derive_summary_scales_levels(raw_chain, now):
     assert derived["net_gex"] is None and derived["net_dex"] is None
     assert derived["regime"] == proxy["regime"]
     assert proxy["call_wall"] == 110.0  # proxy untouched
+
+
+def test_wall_expiries():
+    contracts = pd.DataFrame({
+        "type": ["call", "call", "call", "put", "call"],
+        "strike": [110.0, 110.0, 110.0, 110.0, 105.0],
+        "expiration": ["2026-10-23", "2026-11-20", "2026-10-23", "2026-10-23", "2026-10-23"],
+        "gex": [30.0, 60.0, 20.0, -999.0, 5.0],
+    })
+    (w,) = gex.wall_expiries(contracts, [110.0], "call")
+    assert w["strike"] == 110.0
+    # 2026-10-23 rows sum to 50 of 110; the put and the 105 strike are excluded.
+    assert [(e["expiration"], round(e["pct"], 1)) for e in w["expiries"]] == [("2026-11-20", 54.5), ("2026-10-23", 45.5)]
+    (p,) = gex.wall_expiries(contracts, [110.0], "put")
+    assert p["expiries"] == [{"expiration": "2026-10-23", "pct": 100.0}]
+
+
+def test_wall_expiries_in_summary(raw_chain, now):
+    s = _result(raw_chain, now).summary()
+    assert [w["strike"] for w in s["call_wall_expiries"]] == s["call_walls"]
+    for w in s["call_wall_expiries"] + s["put_wall_expiries"]:
+        assert sum(e["pct"] for e in w["expiries"]) == pytest.approx(100.0)

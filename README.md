@@ -53,6 +53,9 @@ output/
 ├── history/
 │   ├── QQQ_20261015_100000.json      # every run's summary, used for change tracking
 │   └── QQQ_20261016_100000.json
+├── latest/
+│   ├── QQQ_tradingview.txt           # latest levels string to paste into TradingView
+│   └── QQQ_tradingview.pine          # latest indicator with those levels as its default
 └── QQQ/20261016_100000/
     ├── report.md                     # every metric, its value and a one-line explanation
     ├── summary.json                  # all metrics, machine-readable
@@ -60,7 +63,9 @@ output/
     ├── contracts.csv                 # cleaned contracts with greeks and exposures
     ├── gamma_profile.csv             # total net GEX at each hypothetical spot
     ├── gex.png                       # GEX by strike, with walls, flip and expected-move band
-    └── gamma_profile.png             # net GEX vs. price (-10%..+10%), with flip and spot
+    ├── gamma_profile.png             # net GEX vs. price (-10%..+10%), with flip and spot
+    ├── tradingview_levels.txt        # this run's levels string
+    └── tradingview.pine              # this run's indicator
 ```
 
 The terminal shows a combined table, followed by the changes since the previous run:
@@ -86,6 +91,43 @@ A ticker that fails is recorded with its error. The remaining tickers still run.
 - a banner at the top of the report
 
 Dollar exposures are left empty because they don't carry over from one product to another.
+
+## TradingView
+
+TradingView cannot fetch outside data, so the levels get there through a Pine Script indicator that reads them from a single text setting.
+
+**One-time setup (per chart):**
+1. Open `output/latest/<TICKER>_tradingview.pine`, copy all of it, paste it into TradingView's Pine Editor, and click **Add to chart**.
+
+**Each update (once a morning is enough):**
+1. Copy the single line in `output/latest/<TICKER>_tradingview.txt`. It looks like:
+   ```
+   SYM=META;ASOF=2026-10-16 09:00 ET;CW=600,610,620;PW=580,570,560;ZG=591.4;AG=590;EM=583.2,601.8;REG=positive gamma;SRC=chain
+   ```
+2. On the chart, open the indicator's settings (gear icon), paste the line into **Levels**, and click OK.
+
+The indicator draws:
+- the call walls (blue, dashed) and put walls (red, dashed), with the strongest wall of each drawn thicker
+- the zero-gamma flip (dotted)
+- the absolute gamma strike
+- the expected-move band (shaded)
+
+A small panel in the top-right corner shows the regime and the as-of time. If the levels belong to a different symbol from the chart, the panel shows a red warning. Derived levels (NDX from QQQ) are labelled "(from QQQ)".
+
+## Automatic cloud runs (GitHub Actions)
+
+`.github/workflows/gex.yml` runs the tool on GitHub's servers, so your computer can be off. The schedule is **09:00, 10:30, 12:30 and 15:00 New York time, Monday to Friday**. Daylight saving is handled by the workflow, but GitHub may start scheduled runs several minutes late. Scheduled runs only work from the repository's **default branch**.
+
+- **Tickers:** set by `TICKERS` near the top of the workflow file (currently `META`).
+- **Where results go:** each run commits its reports, JSON, levels strings and history to the **`gex-data` branch**. The latest TradingView line is at `gex-data:output/latest/META_tradingview.txt`, which you can open from the GitHub app. Code and data stay on separate branches.
+- **Charts:** charts and `contracts.csv` are not committed. They're attached to each run as a downloadable artifact, kept for 14 days.
+- **Quick view:** each run's page in the **Actions** tab shows the summary table and the TradingView line.
+- **Manual run:** Actions → GEX levels → **Run workflow**. You can enter other tickers there.
+- **Failures:** if every ticker fails (for example, Yahoo blocks the request), the run is marked failed and GitHub emails you.
+
+Market holidays aren't skipped. A holiday run just recalculates from the last session's data.
+
+If you also run the tool on your own computer, avoid splitting the history across two places. Either work from the `gex-data` branch, or pass `--no-history` for local one-off checks.
 
 ## Method
 

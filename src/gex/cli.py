@@ -12,7 +12,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from . import data, gex, history, report
+from . import data, gex, history, pine, report
 from .config import Settings, load_settings
 
 log = logging.getLogger("gex")
@@ -146,6 +146,7 @@ class Runner:
             history.save(self.history_dir, summary, self.stamp)
         (out_dir / "summary.json").write_text(json.dumps(summary, indent=2))
         report.write(out_dir / "report.md", summary, changes, previous_as_of)
+        pine.write(out_dir, self.root / "latest", summary)
         log.info("%s: wrote %s", ticker, out_dir)
         self.summaries[ticker] = summary
         return summary

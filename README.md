@@ -116,7 +116,7 @@ A small panel in the top-right corner shows the regime and the as-of time. If th
 
 ## Automatic cloud runs (GitHub Actions)
 
-`.github/workflows/gex.yml` runs the tool on GitHub's servers, so your computer can be off. The schedule is **09:00, 10:30, 12:30 and 15:00 New York time, Monday to Friday**. Daylight saving is handled by the workflow, but GitHub may start scheduled runs several minutes late. Scheduled runs only work from the repository's **default branch**.
+`.github/workflows/gex.yml` runs the tool on GitHub's servers, so your computer can be off. The schedule is **once a day at 09:00 New York time, Monday to Friday**: before the open, and after Yahoo has picked up the previous session's open interest. Daylight saving is handled by the workflow, but GitHub may start scheduled runs several minutes late. Scheduled runs only work from the repository's **default branch**.
 
 - **Tickers:** set by `TICKERS` near the top of the workflow file (currently `META`).
 - **Where results go:** each run commits its reports, JSON, levels strings and history to the **`gex-data` branch**. The latest TradingView line is at `gex-data:output/latest/META_tradingview.txt`, which you can open from the GitHub app. Code and data stay on separate branches.

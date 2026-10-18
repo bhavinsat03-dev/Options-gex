@@ -13,10 +13,10 @@ on:
     inputs:
       tickers:
         description: "Tickers (space separated)"
-        default: "META"
+        default: "META SPY QQQ TSLA BABA MU AMD SPCX"
 
 env:
-  TICKERS: META            # tickers for scheduled runs
+  TICKERS: META SPY QQQ TSLA BABA MU AMD SPCX   # tickers for scheduled runs
   DATA_BRANCH: gex-data    # results and history are committed here
 
 permissions:

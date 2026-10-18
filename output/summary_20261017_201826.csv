@@ -1,0 +1,2 @@
+ticker,spot,net_gex,regime,call_wall,put_wall,abs_gamma_strike,zero_gamma,call_walls,put_walls,net_dex,net_vanna,net_charm,expected_move,em_low,em_high,put_call_oi_ratio,skew_25d,pct_0dte,pct_this_week,pct_this_month,pct_beyond,pct_after_monthly,source,status
+META,709.33,63501561.167081475,positive gamma,800.0,750.0,750.0,692.16,800 750 700,750 700 680,13066639469.254145,65934806.46090315,-119920628.51589023,14.8,694.5300170898438,724.1300170898437,0.6885299596204573,0.1149023262978055,0.0,0.0,52.053086805973855,47.94691319402615,0.3020640494602671,chain,ok

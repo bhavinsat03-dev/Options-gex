@@ -1,0 +1,4 @@
+Ticker   Spot Net GEX/1%         Regime Call wall Put wall Abs gamma Zero gamma     Exp. move P/C OI 25d skew Status
+  META 709.33     $63.5M positive gamma    800.00   750.00    750.00     692.16 694.53-724.13   0.69      0.1     ok
+
+Outputs written to /home/runner/work/Options-gex/Options-gex/data/output

@@ -1,0 +1,58 @@
+{
+  "ticker": "SPCX",
+  "spot": 146.03,
+  "derived": false,
+  "derived_from": null,
+  "net_gex": -45969046.04852013,
+  "regime": "negative gamma",
+  "regime_description": "Dealer hedging tends to reinforce price moves, a condition historically associated with higher realized volatility.",
+  "call_wall": 150.0,
+  "put_wall": 148.0,
+  "call_walls": [
+    150.0,
+    160.0,
+    155.0
+  ],
+  "put_walls": [
+    148.0,
+    150.0,
+    140.0
+  ],
+  "abs_gamma_strike": 150.0,
+  "zero_gamma": 153.6,
+  "net_dex": 3758558714.437764,
+  "net_vanna": 9227744.77860708,
+  "net_charm": -32584064.656746738,
+  "expected_move": {
+    "expiration": "2026-10-19",
+    "strike": 146.0,
+    "call_price": 2.145,
+    "put_price": 2.1399999999999997,
+    "move": 4.285,
+    "move_pct": 2.9343285871529416,
+    "low": 141.74499877929688,
+    "high": 150.31499877929687
+  },
+  "put_call_oi_ratio": 0.9649439039767047,
+  "skew_25d": {
+    "expiration": "2026-11-13",
+    "days": 26.849600960868052,
+    "put_iv": 0.6257964990075434,
+    "call_iv": 0.5950297233678128,
+    "skew": 3.0766775639730626
+  },
+  "expiry_concentration": {
+    "pct_abs_gex": {
+      "0dte": 0.0,
+      "this_week": 0.0,
+      "this_month": 60.76443405597042,
+      "beyond": 39.23556594402959
+    },
+    "next_monthly_expiry": "2026-11-20",
+    "net_gex_after_monthly": -557487.9110596613,
+    "pct_abs_gex_after_monthly": 0.7338986010537357
+  },
+  "contracts": 480,
+  "expirations": 10,
+  "as_of": "2026-10-18T00:36:34+00:00"
+}

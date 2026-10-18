@@ -1,0 +1,58 @@
+{
+  "ticker": "QQQ",
+  "spot": 709.8,
+  "derived": false,
+  "derived_from": null,
+  "net_gex": -6567877290.507671,
+  "regime": "negative gamma",
+  "regime_description": "Dealer hedging tends to reinforce price moves, a condition historically associated with higher realized volatility.",
+  "call_wall": 760.0,
+  "put_wall": 700.0,
+  "call_walls": [
+    760.0,
+    750.0,
+    740.0
+  ],
+  "put_walls": [
+    700.0,
+    715.0,
+    720.0
+  ],
+  "abs_gamma_strike": 700.0,
+  "zero_gamma": 738.72,
+  "net_dex": 70608516423.30621,
+  "net_vanna": 683899601.1633339,
+  "net_charm": -451308779.43167275,
+  "expected_move": {
+    "expiration": "2026-10-19",
+    "strike": 710.0,
+    "call_price": 4.715,
+    "put_price": 5.145,
+    "move": 9.86,
+    "move_pct": 1.3891237207059406,
+    "low": 699.9399877929687,
+    "high": 719.6599877929688
+  },
+  "put_call_oi_ratio": 1.6583900837422068,
+  "skew_25d": {
+    "expiration": "2026-11-13",
+    "days": 26.849600960868052,
+    "put_iv": 0.2703028178606873,
+    "call_iv": 0.2022773656952195,
+    "skew": 6.802545216546782
+  },
+  "expiry_concentration": {
+    "pct_abs_gex": {
+      "0dte": 0.0,
+      "this_week": 0.0,
+      "this_month": 62.05756787263398,
+      "beyond": 37.94243212736602
+    },
+    "next_monthly_expiry": "2026-11-20",
+    "net_gex_after_monthly": 0.0,
+    "pct_abs_gex_after_monthly": 0.0
+  },
+  "contracts": 2397,
+  "expirations": 12,
+  "as_of": "2026-10-18T00:36:34+00:00"
+}

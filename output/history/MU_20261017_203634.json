@@ -1,0 +1,58 @@
+{
+  "ticker": "MU",
+  "spot": 878.84,
+  "derived": false,
+  "derived_from": null,
+  "net_gex": -220745153.77411324,
+  "regime": "negative gamma",
+  "regime_description": "Dealer hedging tends to reinforce price moves, a condition historically associated with higher realized volatility.",
+  "call_wall": 900.0,
+  "put_wall": 900.0,
+  "call_walls": [
+    900.0,
+    1000.0,
+    910.0
+  ],
+  "put_walls": [
+    900.0,
+    850.0,
+    950.0
+  ],
+  "abs_gamma_strike": 900.0,
+  "zero_gamma": 936.74,
+  "net_dex": 12897876997.931585,
+  "net_vanna": 28910015.67782042,
+  "net_charm": -95330837.77447122,
+  "expected_move": {
+    "expiration": "2026-10-19",
+    "strike": 880.0,
+    "call_price": 14.225000000000001,
+    "put_price": 15.425,
+    "move": 29.650000000000002,
+    "move_pct": 3.373765314956023,
+    "low": 849.1900268554688,
+    "high": 908.4900268554687
+  },
+  "put_call_oi_ratio": 0.9458056403808155,
+  "skew_25d": {
+    "expiration": "2026-11-13",
+    "days": 26.849600960868052,
+    "put_iv": 0.5485091457823508,
+    "call_iv": 0.5192559442772628,
+    "skew": 2.9253201505087922
+  },
+  "expiry_concentration": {
+    "pct_abs_gex": {
+      "0dte": 0.0,
+      "this_week": 0.0,
+      "this_month": 59.40198810061018,
+      "beyond": 40.59801189938982
+    },
+    "next_monthly_expiry": "2026-11-20",
+    "net_gex_after_monthly": -11290490.810186494,
+    "pct_abs_gex_after_monthly": 2.4857936404304426
+  },
+  "contracts": 1091,
+  "expirations": 10,
+  "as_of": "2026-10-18T00:36:34+00:00"
+}

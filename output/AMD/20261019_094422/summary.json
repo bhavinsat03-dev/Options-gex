@@ -1,0 +1,164 @@
+{
+  "ticker": "AMD",
+  "spot": 551.53,
+  "derived": false,
+  "derived_from": null,
+  "net_gex": 84682287.36504501,
+  "regime": "positive gamma",
+  "regime_description": "Dealer hedging tends to offset price moves, a condition historically associated with lower realized volatility.",
+  "call_wall": 560.0,
+  "put_wall": 540.0,
+  "call_walls": [
+    560.0,
+    570.0,
+    620.0
+  ],
+  "put_walls": [
+    540.0,
+    545.0,
+    500.0
+  ],
+  "call_wall_expiries": [
+    {
+      "strike": 560.0,
+      "expiries": [
+        {
+          "expiration": "2026-10-23",
+          "pct": 44.01628980550932
+        },
+        {
+          "expiration": "2026-10-19",
+          "pct": 38.84702147798731
+        },
+        {
+          "expiration": "2026-11-20",
+          "pct": 11.070749676275108
+        }
+      ]
+    },
+    {
+      "strike": 570.0,
+      "expiries": [
+        {
+          "expiration": "2026-10-23",
+          "pct": 78.14121895140472
+        },
+        {
+          "expiration": "2026-10-21",
+          "pct": 9.580479517318006
+        },
+        {
+          "expiration": "2026-10-30",
+          "pct": 8.259296424249474
+        }
+      ]
+    },
+    {
+      "strike": 620.0,
+      "expiries": [
+        {
+          "expiration": "2026-11-20",
+          "pct": 99.93896888146439
+        },
+        {
+          "expiration": "2026-10-23",
+          "pct": 0.030896083291860145
+        },
+        {
+          "expiration": "2026-11-06",
+          "pct": 0.01781563132941618
+        }
+      ]
+    }
+  ],
+  "put_wall_expiries": [
+    {
+      "strike": 540.0,
+      "expiries": [
+        {
+          "expiration": "2026-10-23",
+          "pct": 99.6464357049517
+        },
+        {
+          "expiration": "2026-10-30",
+          "pct": 0.27170989819350405
+        },
+        {
+          "expiration": "2026-12-18",
+          "pct": 0.053418456594789394
+        }
+      ]
+    },
+    {
+      "strike": 545.0,
+      "expiries": [
+        {
+          "expiration": "2026-10-23",
+          "pct": 99.72201551446264
+        },
+        {
+          "expiration": "2026-11-06",
+          "pct": 0.2448940872279258
+        },
+        {
+          "expiration": "2026-10-30",
+          "pct": 0.02400926559818519
+        }
+      ]
+    },
+    {
+      "strike": 500.0,
+      "expiries": [
+        {
+          "expiration": "2026-10-23",
+          "pct": 97.46640843546398
+        },
+        {
+          "expiration": "2026-10-28",
+          "pct": 1.6978374734182078
+        },
+        {
+          "expiration": "2026-10-19",
+          "pct": 0.5345358887028757
+        }
+      ]
+    }
+  ],
+  "abs_gamma_strike": 560.0,
+  "zero_gamma": 550.34,
+  "net_dex": 1194173086.019184,
+  "net_vanna": 8882040.019246051,
+  "net_charm": -3740300.4871006794,
+  "expected_move": {
+    "expiration": "2026-10-19",
+    "strike": 547.5,
+    "call_price": 11.375,
+    "put_price": 20.8,
+    "move": 32.175,
+    "move_pct": 5.83377119846379,
+    "low": 519.355029296875,
+    "high": 583.705029296875
+  },
+  "put_call_oi_ratio": 1.030232060382752,
+  "skew_25d": {
+    "expiration": "2026-11-20",
+    "days": 32.30251593003472,
+    "put_iv": 0.32911467558117,
+    "call_iv": 0.5670869659840229,
+    "skew": -23.797229040285284
+  },
+  "expiry_concentration": {
+    "pct_abs_gex": {
+      "0dte": 30.35417134719809,
+      "this_week": 40.31807475694841,
+      "this_month": 2.163879342819504,
+      "beyond": 27.163874553033978
+    },
+    "next_monthly_expiry": "2026-11-20",
+    "net_gex_after_monthly": 498342.6871829141,
+    "pct_abs_gex_after_monthly": 6.270466737452966
+  },
+  "contracts": 590,
+  "expirations": 11,
+  "as_of": "2026-10-19T13:44:22+00:00"
+}

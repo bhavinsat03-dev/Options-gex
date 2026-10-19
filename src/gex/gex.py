@@ -301,6 +301,18 @@ def expected_move(chain: pd.DataFrame, spot: float) -> dict | None:
     }
 
 
+def total_oi(df: pd.DataFrame, option_type: str) -> int:
+    oi = pd.to_numeric(df["open_interest"], errors="coerce").fillna(0)
+    return int(oi[df["type"] == option_type].sum())
+
+
+def strike_oi(by_strike: pd.DataFrame, strike: float | None, column: str) -> int | None:
+    if strike is None:
+        return None
+    row = by_strike.loc[by_strike["strike"] == strike, column]
+    return int(row.iloc[0]) if len(row) else None
+
+
 def put_call_oi_ratio(df: pd.DataFrame) -> float | None:
     oi = pd.to_numeric(df["open_interest"], errors="coerce").fillna(0)
     calls = oi[df["type"] == "call"].sum()
@@ -360,6 +372,8 @@ class GexResult:
     zero_gamma: float | None
     expected_move: dict | None
     put_call_oi_ratio: float | None
+    total_call_oi: int
+    total_put_oi: int
     skew_25d: dict | None
     expiry_concentration: dict
     expirations: list[str] = field(default_factory=list)
@@ -398,6 +412,10 @@ class GexResult:
             "net_charm": float(self.contracts["charm_exp"].sum()),
             "expected_move": self.expected_move,
             "put_call_oi_ratio": self.put_call_oi_ratio,
+            "total_call_oi": self.total_call_oi,
+            "total_put_oi": self.total_put_oi,
+            "call_wall_oi": strike_oi(self.by_strike, self.call_wall, "call_oi"),
+            "put_wall_oi": strike_oi(self.by_strike, self.put_wall, "put_oi"),
             "skew_25d": self.skew_25d,
             "expiry_concentration": self.expiry_concentration,
             "contracts": len(self.contracts),
@@ -440,6 +458,8 @@ def compute(
         zero_gamma=zero_gamma(profile, spot),
         expected_move=expected_move(chain, spot),
         put_call_oi_ratio=put_call_oi_ratio(raw if raw is not None else chain),
+        total_call_oi=total_oi(raw if raw is not None else chain, "call"),
+        total_put_oi=total_oi(raw if raw is not None else chain, "put"),
         skew_25d=skew_25d(chain, spot, r, q, skew_target_days),
         expiry_concentration=expiry_concentration(contracts, today),
         expirations=sorted({str(e) for e in chain["expiration"]}),
@@ -475,7 +495,7 @@ def derive_summary(proxy: dict, ticker: str, spot: float) -> dict:
     out["put_walls"] = [round(k * ratio, 2) for k in proxy.get("put_walls", [])]
     for key in ("call_wall_expiries", "put_wall_expiries"):
         out[key] = [dict(w, strike=round(w["strike"] * ratio, 2)) for w in proxy.get(key, [])]
-    for key in DOLLAR_EXPOSURES:
+    for key in DOLLAR_EXPOSURES + ("total_call_oi", "total_put_oi", "call_wall_oi", "put_wall_oi"):
         out[key] = None
     em = proxy.get("expected_move")
     if em:

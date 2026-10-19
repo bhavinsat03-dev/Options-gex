@@ -89,6 +89,13 @@ def metric_rows(s: dict) -> list[tuple[str, str, str]]:
         ("Expected move",
          "n/a" if not em else f"±{num(em['move'])} ({pct(em['move_pct'])}) -> {num(em['low'])} to {num(em['high'])}, exp {em['expiration']}",
          "The nearest-expiry at-the-money straddle price, i.e. the size of move the options market is pricing by that expiry."),
+        ("Total call / put OI",
+         "n/a" if s.get("total_call_oi") is None else f"{s['total_call_oi']:,} calls / {s['total_put_oi']:,} puts",
+         "Open contracts across all fetched expirations and strikes."),
+        ("OI at main walls",
+         "n/a" if s.get("call_wall_oi") is None and s.get("put_wall_oi") is None
+         else f"call wall {num(s.get('call_wall'))}: {s.get('call_wall_oi') or 0:,} calls; put wall {num(s.get('put_wall'))}: {s.get('put_wall_oi') or 0:,} puts",
+         "Open contracts at the strongest call and put wall strikes, summed across expirations."),
         ("Put/call OI ratio", num(s.get("put_call_oi_ratio")),
          "Put open interest divided by call open interest across the fetched expirations; above 1 means more puts outstanding."),
         ("25-delta skew",

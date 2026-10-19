@@ -272,3 +272,12 @@ def test_wall_expiries_in_summary(raw_chain, now):
     assert [w["strike"] for w in s["call_wall_expiries"]] == s["call_walls"]
     for w in s["call_wall_expiries"] + s["put_wall_expiries"]:
         assert sum(e["pct"] for e in w["expiries"]) == pytest.approx(100.0)
+
+
+def test_open_interest_fields(raw_chain, now):
+    s = _result(raw_chain, now).summary()
+    assert s["total_call_oi"] == int(raw_chain.loc[raw_chain["type"] == "call", "open_interest"].sum())
+    assert s["total_put_oi"] == int(raw_chain.loc[raw_chain["type"] == "put", "open_interest"].sum())
+    assert s["call_wall_oi"] == 5000 * 2  # 110 strike, two expirations
+    assert s["put_wall_oi"] == 6000 * 2   # 90 strike
+    assert s["put_call_oi_ratio"] == pytest.approx(s["total_put_oi"] / s["total_call_oi"])

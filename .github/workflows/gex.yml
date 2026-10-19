@@ -2,9 +2,10 @@ name: GEX levels
 
 # Runs at 09:50, 12:30 and 15:00 New York time, Monday-Friday. 09:50 lets
 # the opening quotes settle; it is the main run for the day's levels.
-# GitHub cron is UTC-only, so each time is listed for both EDT (UTC-4) and
-# EST (UTC-5); the "gate" step keeps only the one matching today's offset.
-# Scheduled runs can start several minutes (sometimes 30+) late.
+# GitHub cron is UTC-only and can start runs late or skip them, so each time
+# is listed for both EDT (UTC-4) and EST (UTC-5). The "gate" step
+# (.github/scripts/gate.py) runs the latest slot that started in the last two
+# hours and hasn't run yet today, so the second listing acts as a retry.
 on:
   schedule:
     - cron: "50 13 * * 1-5"  # 09:50 EDT
@@ -40,23 +41,16 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
+      - uses: actions/checkout@v4
+
       - name: Gate on New York time
         id: gate
         env:
-          SCHEDULE: ${{ github.event.schedule }}
+          GH_TOKEN: ${{ github.token }}
         run: |
-          if [ -z "$SCHEDULE" ]; then echo "run=true" >> "$GITHUB_OUTPUT"; exit 0; fi
-          offset=$(TZ=America/New_York date +%z)
-          case "$offset:$SCHEDULE" in
-            "-0400:50 13 * * 1-5"|"-0400:30 16 * * 1-5"|"-0400:0 19 * * 1-5") run=true ;;
-            "-0500:50 14 * * 1-5"|"-0500:30 17 * * 1-5"|"-0500:0 20 * * 1-5") run=true ;;
-            *) run=false ;;
-          esac
-          echo "NY offset $offset, schedule '$SCHEDULE' -> run=$run"
-          echo "run=$run" >> "$GITHUB_OUTPUT"
-
-      - uses: actions/checkout@v4
-        if: steps.gate.outputs.run == 'true'
+          gh api "repos/$GITHUB_REPOSITORY/contents/output/latest/slots.txt?ref=$DATA_BRANCH" \
+            -H "Accept: application/vnd.github.raw" > /tmp/slots.txt 2>/dev/null || : > /tmp/slots.txt
+          python3 .github/scripts/gate.py "$GITHUB_EVENT_NAME" /tmp/slots.txt | tee -a "$GITHUB_OUTPUT"
 
       - uses: actions/setup-python@v5
         if: steps.gate.outputs.run == 'true'
@@ -87,7 +81,13 @@ jobs:
         env:
           PYTHONPATH: src
           INPUT_TICKERS: ${{ inputs.tickers }}
-        run: python -m gex ${INPUT_TICKERS:-$TICKERS} -o data/output | tee data/last_run.txt
+          SLOT: ${{ steps.gate.outputs.slot }}
+        run: |
+          python -m gex ${INPUT_TICKERS:-$TICKERS} -o data/output | tee data/last_run.txt
+          if [ "$SLOT" != "manual" ]; then
+            echo "$SLOT" >> data/output/latest/slots.txt
+            tail -n 60 data/output/latest/slots.txt > /tmp/s && mv /tmp/s data/output/latest/slots.txt
+          fi
 
       - name: Job summary
         if: steps.gate.outputs.run == 'true' && always()

@@ -1,14 +1,18 @@
 name: GEX levels
 
-# Runs once a day at 09:00 New York time, Monday-Friday: before the open,
-# after Yahoo has picked up the previous session's open interest.
-# GitHub cron is UTC-only, so the time is listed for both EDT (UTC-4) and
+# Runs at 09:50, 12:30 and 15:00 New York time, Monday-Friday. 09:50 lets
+# the opening quotes settle; it is the main run for the day's levels.
+# GitHub cron is UTC-only, so each time is listed for both EDT (UTC-4) and
 # EST (UTC-5); the "gate" step keeps only the one matching today's offset.
-# Scheduled runs can start several minutes late.
+# Scheduled runs can start several minutes (sometimes 30+) late.
 on:
   schedule:
-    - cron: "0 13 * * 1-5"   # 09:00 EDT
-    - cron: "0 14 * * 1-5"   # 09:00 EST
+    - cron: "50 13 * * 1-5"  # 09:50 EDT
+    - cron: "50 14 * * 1-5"  # 09:50 EST
+    - cron: "30 16 * * 1-5"  # 12:30 EDT
+    - cron: "30 17 * * 1-5"  # 12:30 EST
+    - cron: "0 19 * * 1-5"   # 15:00 EDT
+    - cron: "0 20 * * 1-5"   # 15:00 EST
   workflow_dispatch:
     inputs:
       tickers:
@@ -39,7 +43,8 @@ jobs:
           if [ -z "$SCHEDULE" ]; then echo "run=true" >> "$GITHUB_OUTPUT"; exit 0; fi
           offset=$(TZ=America/New_York date +%z)
           case "$offset:$SCHEDULE" in
-            "-0400:0 13 * * 1-5"|"-0500:0 14 * * 1-5") run=true ;;
+            "-0400:50 13 * * 1-5"|"-0400:30 16 * * 1-5"|"-0400:0 19 * * 1-5") run=true ;;
+            "-0500:50 14 * * 1-5"|"-0500:30 17 * * 1-5"|"-0500:0 20 * * 1-5") run=true ;;
             *) run=false ;;
           esac
           echo "NY offset $offset, schedule '$SCHEDULE' -> run=$run"

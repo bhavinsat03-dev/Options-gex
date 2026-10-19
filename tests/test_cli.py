@@ -108,7 +108,7 @@ def test_tradingview_outputs(tmp_path, now):
     run(tmp_path, now, "QQQ", "NDX", "--no-plots")
     line = (tmp_path / "out" / "latest" / "QQQ_tradingview.txt").read_text().strip()
     assert line.startswith("SYM=QQQ;ASOF=2026-10-16 10:00 ET;CW=110,")
-    assert ";PW=90," in line and ";ZG=99.9;" in line and line.endswith(";SRC=chain")
+    assert ";PW=90," in line and ";ZG=99.9;" in line and ";OC=110;OP=90;" in line and line.endswith(";SRC=chain")
     pine = (tmp_path / "out" / "QQQ" / STAMP / "tradingview.pine").read_text()
     assert pine.startswith("//@version=6") and f'input.string("{line}"' in pine
     ndx = (tmp_path / "out" / "latest" / "NDX_tradingview.txt").read_text()

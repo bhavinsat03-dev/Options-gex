@@ -92,6 +92,13 @@ def metric_rows(s: dict) -> list[tuple[str, str, str]]:
         ("Total call / put OI",
          "n/a" if s.get("total_call_oi") is None else f"{s['total_call_oi']:,} calls / {s['total_put_oi']:,} puts",
          "Open contracts across all fetched expirations and strikes."),
+        ("Strongest OI strikes",
+         "n/a" if s.get("max_call_oi_strike") is None and s.get("max_put_oi_strike") is None
+         else f"calls {num(s.get('max_call_oi_strike'))}"
+         + (f" ({s['max_call_oi']:,})" if s.get("max_call_oi") is not None else "")
+         + f"; puts {num(s.get('max_put_oi_strike'))}"
+         + (f" ({s['max_put_oi']:,})" if s.get("max_put_oi") is not None else ""),
+         "The strikes with the most open call and put contracts; these are often further from price and longer-dated than the gamma walls."),
         ("OI at main walls",
          "n/a" if s.get("call_wall_oi") is None and s.get("put_wall_oi") is None
          else f"call wall {num(s.get('call_wall'))}: {s.get('call_wall_oi') or 0:,} calls; put wall {num(s.get('put_wall'))}: {s.get('put_wall_oi') or 0:,} puts",

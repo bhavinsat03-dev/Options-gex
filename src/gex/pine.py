@@ -25,7 +25,7 @@ def levels_string(summary: dict) -> str:
     """Compact ``KEY=value;...`` string the Pine indicator parses.
 
     SYM ticker, ASOF timestamp, CW call walls, PW put walls, ZG zero gamma,
-    AG absolute gamma strike, EM expected-move low,high, REG regime,
+    AG absolute gamma strike, OC/OP max call/put OI strikes, EM expected-move low,high, REG regime,
     SRC 'chain' or the proxy ticker the levels were derived from.
     """
     parts = [f"SYM={summary['ticker']}"]
@@ -40,6 +40,10 @@ def levels_string(summary: dict) -> str:
         parts.append(f"ZG={_n(summary['zero_gamma'])}")
     if summary.get("abs_gamma_strike") is not None:
         parts.append(f"AG={_n(summary['abs_gamma_strike'])}")
+    if summary.get("max_call_oi_strike") is not None:
+        parts.append(f"OC={_n(summary['max_call_oi_strike'])}")
+    if summary.get("max_put_oi_strike") is not None:
+        parts.append(f"OP={_n(summary['max_put_oi_strike'])}")
     em = summary.get("expected_move")
     if em:
         parts.append(f"EM={_n(em['low'])},{_n(em['high'])}")
@@ -112,6 +116,12 @@ if barstate.islast
     zg = str.tonumber(field(levels, "ZG"))
     if not na(zg)
         drawLevel(zg, flipCol, "Zero gamma" + tag, line.style_dotted, 2)
+    oc = str.tonumber(field(levels, "OC"))
+    if not na(oc)
+        drawLevel(oc, callCol, "Max call OI" + tag, line.style_dotted, 1)
+    op = str.tonumber(field(levels, "OP"))
+    if not na(op)
+        drawLevel(op, putCol, "Max put OI" + tag, line.style_dotted, 1)
     ag = str.tonumber(field(levels, "AG"))
     if not na(ag)
         drawLevel(ag, absCol, "Abs gamma" + tag, line.style_dashed, 1)

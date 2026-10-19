@@ -21,7 +21,8 @@ SUMMARY_COLUMNS = [
     "ticker", "spot", "net_gex", "regime", "call_wall", "put_wall", "abs_gamma_strike",
     "zero_gamma", "call_walls", "put_walls", "net_dex", "net_vanna", "net_charm",
     "expected_move", "em_low", "em_high", "put_call_oi_ratio", "total_call_oi", "total_put_oi",
-    "call_wall_oi", "put_wall_oi", "skew_25d",
+    "call_wall_oi", "put_wall_oi", "max_call_oi_strike", "max_call_oi", "max_put_oi_strike", "max_put_oi",
+    "skew_25d",
     "pct_0dte", "pct_this_week", "pct_this_month", "pct_beyond", "pct_after_monthly",
     "source", "status",
 ]
@@ -176,6 +177,13 @@ def flat_row(summary: dict) -> dict:
     return row
 
 
+def _strike_oi(strike, oi) -> str:
+    """'800 (51,793)'; the OI part is omitted when unknown (derived tickers)."""
+    if pd.isna(strike):
+        return "-"
+    return f"{strike:g}" if pd.isna(oi) else f"{strike:g} ({oi:,.0f})"
+
+
 def format_table(df: pd.DataFrame) -> str:
     def opt(fn):
         return lambda x: "-" if pd.isna(x) else fn(x)
@@ -195,8 +203,8 @@ def format_table(df: pd.DataFrame) -> str:
         "Abs gamma": df["abs_gamma_strike"].map(opt(report.num)),
         "Zero gamma": df["zero_gamma"].map(opt(report.num)),
         "Exp. move": df.apply(em, axis=1),
-        "Call OI": df["total_call_oi"].map(opt(lambda x: f"{x:,.0f}")),
-        "Put OI": df["total_put_oi"].map(opt(lambda x: f"{x:,.0f}")),
+        "Max call OI": df.apply(lambda r: _strike_oi(r["max_call_oi_strike"], r["max_call_oi"]), axis=1),
+        "Max put OI": df.apply(lambda r: _strike_oi(r["max_put_oi_strike"], r["max_put_oi"]), axis=1),
         "P/C OI": df["put_call_oi_ratio"].map(opt(report.num)),
         "25d skew": df["skew_25d"].map(opt(lambda x: f"{x:.1f}")),
         "Status": df["status"],

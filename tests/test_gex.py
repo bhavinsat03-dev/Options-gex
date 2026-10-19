@@ -281,3 +281,11 @@ def test_open_interest_fields(raw_chain, now):
     assert s["call_wall_oi"] == 5000 * 2  # 110 strike, two expirations
     assert s["put_wall_oi"] == 6000 * 2   # 90 strike
     assert s["put_call_oi_ratio"] == pytest.approx(s["total_put_oi"] / s["total_call_oi"])
+
+
+def test_max_oi_strikes(raw_chain, now):
+    s = _result(raw_chain, now).summary()
+    assert (s["max_call_oi_strike"], s["max_call_oi"]) == (110.0, 10000)
+    assert (s["max_put_oi_strike"], s["max_put_oi"]) == (90.0, 12000)
+    d = gex.derive_summary(s, "NDX", 4100.0)
+    assert d["max_call_oi_strike"] == pytest.approx(110.0 * 41) and d["max_call_oi"] is None

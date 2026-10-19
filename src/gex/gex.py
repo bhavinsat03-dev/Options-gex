@@ -313,6 +313,14 @@ def strike_oi(by_strike: pd.DataFrame, strike: float | None, column: str) -> int
     return int(row.iloc[0]) if len(row) else None
 
 
+def max_oi_strike(by_strike: pd.DataFrame, column: str) -> tuple[float | None, int | None]:
+    """Strike with the most open interest in ``column`` ('call_oi' / 'put_oi')."""
+    if by_strike.empty or not (by_strike[column] > 0).any():
+        return None, None
+    row = by_strike.loc[by_strike[column].idxmax()]
+    return float(row["strike"]), int(row[column])
+
+
 def put_call_oi_ratio(df: pd.DataFrame) -> float | None:
     oi = pd.to_numeric(df["open_interest"], errors="coerce").fillna(0)
     calls = oi[df["type"] == "call"].sum()
@@ -415,6 +423,10 @@ class GexResult:
             "total_call_oi": self.total_call_oi,
             "total_put_oi": self.total_put_oi,
             "call_wall_oi": strike_oi(self.by_strike, self.call_wall, "call_oi"),
+            "max_call_oi_strike": max_oi_strike(self.by_strike, "call_oi")[0],
+            "max_call_oi": max_oi_strike(self.by_strike, "call_oi")[1],
+            "max_put_oi_strike": max_oi_strike(self.by_strike, "put_oi")[0],
+            "max_put_oi": max_oi_strike(self.by_strike, "put_oi")[1],
             "put_wall_oi": strike_oi(self.by_strike, self.put_wall, "put_oi"),
             "skew_25d": self.skew_25d,
             "expiry_concentration": self.expiry_concentration,
@@ -468,7 +480,7 @@ def compute(
 
 # -------------------------------------------------------------- proxy levels
 
-PRICE_LEVELS = ("call_wall", "put_wall", "abs_gamma_strike", "zero_gamma")
+PRICE_LEVELS = ("call_wall", "put_wall", "abs_gamma_strike", "zero_gamma", "max_call_oi_strike", "max_put_oi_strike")
 DOLLAR_EXPOSURES = ("net_gex", "net_dex", "net_vanna", "net_charm")
 
 
@@ -495,7 +507,7 @@ def derive_summary(proxy: dict, ticker: str, spot: float) -> dict:
     out["put_walls"] = [round(k * ratio, 2) for k in proxy.get("put_walls", [])]
     for key in ("call_wall_expiries", "put_wall_expiries"):
         out[key] = [dict(w, strike=round(w["strike"] * ratio, 2)) for w in proxy.get(key, [])]
-    for key in DOLLAR_EXPOSURES + ("total_call_oi", "total_put_oi", "call_wall_oi", "put_wall_oi"):
+    for key in DOLLAR_EXPOSURES + ("total_call_oi", "total_put_oi", "call_wall_oi", "put_wall_oi", "max_call_oi", "max_put_oi"):
         out[key] = None
     em = proxy.get("expected_move")
     if em:

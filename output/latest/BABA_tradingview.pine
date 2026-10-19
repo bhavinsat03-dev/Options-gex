@@ -3,7 +3,7 @@
 // output/latest/<TICKER>_tradingview.txt into the "Levels" setting.
 indicator("GEX levels", overlay = true, max_lines_count = 50, max_labels_count = 50)
 
-levels     = input.string("SYM=BABA;ASOF=2026-10-19 13:11 ET;CW=120,110,115;PW=110,100,105;ZG=108.8;AG=110;EM=105.21,112.63;REG=positive gamma;SRC=chain", "Levels (paste from <TICKER>_tradingview.txt)")
+levels     = input.string("SYM=BABA;ASOF=2026-10-19 13:16 ET;CW=120,110,115;PW=110,100,105;ZG=108.78;AG=110;OC=120;OP=100;EM=105.21,112.66;REG=positive gamma;SRC=chain", "Levels (paste from <TICKER>_tradingview.txt)")
 showLabels = input.bool(true, "Show labels")
 showEM     = input.bool(true, "Show expected move band")
 callCol    = input.color(#2a78d6, "Call walls")
@@ -61,6 +61,12 @@ if barstate.islast
     zg = str.tonumber(field(levels, "ZG"))
     if not na(zg)
         drawLevel(zg, flipCol, "Zero gamma" + tag, line.style_dotted, 2)
+    oc = str.tonumber(field(levels, "OC"))
+    if not na(oc)
+        drawLevel(oc, callCol, "Max call OI" + tag, line.style_dotted, 1)
+    op = str.tonumber(field(levels, "OP"))
+    if not na(op)
+        drawLevel(op, putCol, "Max put OI" + tag, line.style_dotted, 1)
     ag = str.tonumber(field(levels, "AG"))
     if not na(ag)
         drawLevel(ag, absCol, "Abs gamma" + tag, line.style_dashed, 1)

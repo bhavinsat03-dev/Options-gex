@@ -156,3 +156,59 @@ def render(summary: dict, changes: list[dict] | None = None, previous_as_of: str
 def write(path: Path, summary: dict, changes=None, previous_as_of=None) -> Path:
     Path(path).write_text(render(summary, changes, previous_as_of))
     return Path(path)
+
+
+def _flow(x) -> str:
+    """Signed compact dollars for the brief: '+$1.23B', '−$45.6M'."""
+    if x is None:
+        return "-"
+    sign = "−" if x < 0 else "+"
+    x = abs(x)
+    return f"{sign}${x / 1e9:.2f}B" if x >= 1e9 else f"{sign}${x / 1e6:.1f}M"
+
+
+def _strike_oi(strike, oi) -> str:
+    if strike is None:
+        return "-"
+    return f"{strike:g}" if oi is None else f"{strike:g} ({oi:,})"
+
+
+def render_brief(summaries: list[dict], as_of: str) -> str:
+    """Two-table markdown update: levels, then dealer positioning and volatility."""
+    ok = [s for s in summaries if not str(s.get("status", "ok")).startswith("error")]
+    lines = [f"## GEX update: {as_of}", "", "### 1) Levels", "",
+             "| Ticker | Spot | Regime | Vs flip | Zero gamma | Call wall (OI) | Put wall (OI) "
+             "| Max call OI | Max put OI | Abs gamma | Expected move |",
+             "|---|---|---|---|---|---|---|---|---|---|---|"]
+    for s in ok:
+        zg, em = s.get("zero_gamma"), s.get("expected_move")
+        vs_flip = f"{(s['spot'] / zg - 1) * 100:+.2f}%" if zg else "-"
+        lines.append("| " + " | ".join([
+            s["ticker"] + (f" (from {s['derived_from']})" if s.get("derived") else ""),
+            num(s["spot"]), s["regime"].split()[0], vs_flip, num(zg),
+            _strike_oi(s.get("call_wall"), s.get("call_wall_oi")),
+            _strike_oi(s.get("put_wall"), s.get("put_wall_oi")),
+            _strike_oi(s.get("max_call_oi_strike"), s.get("max_call_oi")),
+            _strike_oi(s.get("max_put_oi_strike"), s.get("max_put_oi")),
+            num(s.get("abs_gamma_strike")),
+            f"{num(em['low'])}–{num(em['high'])}" if em else "-",
+        ]) + " |")
+    lines += ["", "### 2) Dealer positioning and volatility", "",
+              "| Ticker | Net GEX (per 1%) | Net DEX | Vanna (per vol pt) | Charm (per day) "
+              "| Expected move | 25d skew | IV | P/C OI |",
+              "|---|---|---|---|---|---|---|---|---|"]
+    for s in ok:
+        em, sk = s.get("expected_move"), s.get("skew_25d")
+        lines.append("| " + " | ".join([
+            s["ticker"], _flow(s.get("net_gex")), _flow(s.get("net_dex")),
+            _flow(s.get("net_vanna")), _flow(s.get("net_charm")),
+            f"±{em['move_pct']:.1f}%" if em else "-",
+            f"{sk['skew']:+.1f}" if sk else "-",
+            f"{sk['call_iv'] * 100:.0f}%" if sk else "-",
+            num(s.get("put_call_oi_ratio")),
+        ]) + " |")
+    failed = [s for s in summaries if str(s.get("status", "")).startswith("error")]
+    if failed:
+        lines += ["", "Failed: " + ", ".join(f"{s['ticker']} ({s['status']})" for s in failed)]
+    lines += ["", "_Descriptive only; not trading advice._", ""]
+    return "\n".join(lines)

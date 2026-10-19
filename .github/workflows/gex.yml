@@ -18,6 +18,10 @@ on:
       tickers:
         description: "Tickers (space separated)"
         default: "META SPY QQQ TSLA BABA MU AMD SPCX IWM"
+      notify:
+        description: "Post the update to the GEX updates issue"
+        type: boolean
+        default: false
 
 env:
   TICKERS: META SPY QQQ TSLA BABA MU AMD SPCX IWM   # tickers for scheduled runs
@@ -25,6 +29,7 @@ env:
 
 permissions:
   contents: write
+  issues: write
 
 concurrency:
   group: gex
@@ -87,14 +92,21 @@ jobs:
       - name: Job summary
         if: steps.gate.outputs.run == 'true' && always()
         run: |
-          {
-            echo '```'; cat data/last_run.txt 2>/dev/null; echo '```'
-            for f in data/output/latest/*_tradingview.txt; do
-              [ -e "$f" ] || continue
-              echo "**$(basename "$f" _tradingview.txt)** TradingView levels:"
-              echo '```'; cat "$f"; echo '```'
-            done
-          } >> "$GITHUB_STEP_SUMMARY"
+          cat data/output/latest/brief.md >> "$GITHUB_STEP_SUMMARY" 2>/dev/null || echo "No brief produced" >> "$GITHUB_STEP_SUMMARY"
+
+      # Scheduled runs (and manual runs with "notify") post the two-table brief as a
+      # comment on the "GEX updates" issue, which sends a GitHub notification.
+      - name: Post update
+        if: steps.gate.outputs.run == 'true' && (github.event_name == 'schedule' || inputs.notify) && hashFiles('data/output/latest/brief.md') != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TITLE: GEX updates
+        run: |
+          num=$(gh issue list --state open --search "\"$TITLE\" in:title" --json number,title -q ".[] | select(.title == \"$TITLE\") | .number" | head -1)
+          if [ -z "$num" ]; then
+            num=$(gh issue create --title "$TITLE" --body "Each scheduled GEX run posts its levels and dealer-positioning tables here. Subscribe to get notified." | grep -o '[0-9]*$')
+          fi
+          gh issue comment "$num" --body-file data/output/latest/brief.md
 
       - name: Upload charts
         if: steps.gate.outputs.run == 'true' && always()

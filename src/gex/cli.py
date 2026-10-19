@@ -222,15 +222,22 @@ def main(argv=None, fetch=data.fetch_chain, fetch_spot=data.fetch_spot_only,
     settings = build_settings(args)
     runner = Runner(settings, now or datetime.now(timezone.utc), fetch, fetch_spot)
 
-    rows = []
+    rows, results = [], []
     for i, ticker in enumerate(settings.tickers):
         if i:
             time.sleep(settings.pause_between_tickers)
-        rows.append(flat_row(runner.run(ticker)))
+        result = runner.run(ticker)
+        results.append(result)
+        rows.append(flat_row(result))
 
     table = pd.DataFrame(rows).reindex(columns=SUMMARY_COLUMNS)
     runner.root.mkdir(parents=True, exist_ok=True)
     table.to_csv(runner.root / f"summary_{runner.stamp}.csv", index=False)
+
+    latest = runner.root / "latest"
+    latest.mkdir(parents=True, exist_ok=True)
+    as_of = runner.now.astimezone(data.NY).strftime("%Y-%m-%d %H:%M ET")
+    (latest / "brief.md").write_text(report.render_brief(results, as_of))
 
     print(format_table(table))
     if table["source"].astype(str).str.startswith("derived").any():

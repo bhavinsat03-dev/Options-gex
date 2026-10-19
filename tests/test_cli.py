@@ -113,3 +113,11 @@ def test_tradingview_outputs(tmp_path, now):
     assert pine.startswith("//@version=6") and f'input.string("{line}"' in pine
     ndx = (tmp_path / "out" / "latest" / "NDX_tradingview.txt").read_text()
     assert "SYM=NDX;" in ndx and "CW=4510," in ndx and ndx.strip().endswith("SRC=QQQ")
+
+
+def test_brief_has_two_tables(tmp_path, now):
+    run(tmp_path, now, "QQQ", "bad", "--no-plots")
+    brief = (tmp_path / "out" / "latest" / "brief.md").read_text()
+    assert "### 1) Levels" in brief and "### 2) Dealer positioning and volatility" in brief
+    assert "| QQQ | 100.00 |" in brief and "110 (10,000)" in brief
+    assert "Failed: BAD" in brief

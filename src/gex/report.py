@@ -178,7 +178,7 @@ def render_brief(summaries: list[dict], as_of: str) -> str:
     ok = [s for s in summaries if not str(s.get("status", "ok")).startswith("error")]
     lines = [f"## GEX update: {as_of}", "", "### 1) Levels", "",
              "| Ticker | Spot | Regime | Vs flip | Zero gamma | Call wall (OI) | Put wall (OI) "
-             "| Max call OI | Max put OI | Abs gamma | Expected move |",
+             "| Next call walls | Next put walls | Abs gamma | Expected move |",
              "|---|---|---|---|---|---|---|---|---|---|---|"]
     for s in ok:
         zg, em = s.get("zero_gamma"), s.get("expected_move")
@@ -188,8 +188,8 @@ def render_brief(summaries: list[dict], as_of: str) -> str:
             num(s["spot"]), s["regime"].split()[0], vs_flip, num(zg),
             _strike_oi(s.get("call_wall"), s.get("call_wall_oi")),
             _strike_oi(s.get("put_wall"), s.get("put_wall_oi")),
-            _strike_oi(s.get("max_call_oi_strike"), s.get("max_call_oi")),
-            _strike_oi(s.get("max_put_oi_strike"), s.get("max_put_oi")),
+            " / ".join(f"{k:g}" for k in s.get("call_walls", [])[1:]) or "-",
+            " / ".join(f"{k:g}" for k in s.get("put_walls", [])[1:]) or "-",
             num(s.get("abs_gamma_strike")),
             f"{num(em['low'])}–{num(em['high'])}" if em else "-",
         ]) + " |")

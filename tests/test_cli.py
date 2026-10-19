@@ -121,3 +121,11 @@ def test_brief_has_two_tables(tmp_path, now):
     assert "### 1) Levels" in brief and "### 2) Dealer positioning and volatility" in brief
     assert "| QQQ | 100.00 |" in brief and "110 (10,000)" in brief
     assert "Failed: BAD" in brief
+
+
+def test_brief_lists_next_walls(tmp_path, now):
+    run(tmp_path, now, "QQQ", "--no-plots")
+    brief = (tmp_path / "out" / "latest" / "brief.md").read_text()
+    assert "| Next call walls | Next put walls |" in brief and "Max call OI" not in brief
+    summary = json.loads((tmp_path / "out" / "QQQ" / STAMP / "summary.json").read_text())
+    assert " / ".join(f"{k:g}" for k in summary["call_walls"][1:]) in brief

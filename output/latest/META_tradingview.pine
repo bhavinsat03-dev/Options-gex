@@ -3,7 +3,7 @@
 // output/latest/<TICKER>_tradingview.txt into the "Levels" setting.
 indicator("GEX levels", overlay = true, max_lines_count = 50, max_labels_count = 50)
 
-levels     = input.string("SYM=META;ASOF=2026-10-19 21:26 ET;CW=800,700,750;PW=750,680,650;ZG=677.07;AG=750;OC=800;OP=750;EM=667.04,743.84;REG=positive gamma;SRC=chain", "Levels (paste from <TICKER>_tradingview.txt)")
+levels     = input.string("SYM=META;ASOF=2026-10-20 09:50 ET;CW=700,800,750;PW=680,650,700;ZG=678.29;AG=700;OC=800;OP=650;EM=647.48,720.18;REG=positive gamma;SRC=chain", "Levels (paste from <TICKER>_tradingview.txt)")
 showLabels = input.bool(true, "Show labels")
 showEM     = input.bool(true, "Show expected move band")
 callCol    = input.color(#2a78d6, "Call walls")

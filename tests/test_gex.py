@@ -298,3 +298,9 @@ def test_oi_by_expiry(raw_chain, now):
     assert sorted(x["expiration"] for x in e["expiries"]) == ["2026-10-23", "2026-11-20"]
     assert sum(x["pct"] for x in e["expiries"]) == pytest.approx(100.0)
     assert s["oi_expiries"]["max_put_oi"]["strike"] == 90.0
+
+
+def test_call_and_put_gex_sum_to_net(raw_chain, now):
+    s = _result(raw_chain, now).summary()
+    assert s["call_gex"] > 0 > s["put_gex"]
+    assert s["call_gex"] + s["put_gex"] == pytest.approx(s["net_gex"])

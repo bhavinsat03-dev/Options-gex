@@ -126,6 +126,7 @@ def test_brief_has_two_tables(tmp_path, now):
 def test_brief_lists_next_walls(tmp_path, now):
     run(tmp_path, now, "QQQ", "--no-plots")
     brief = (tmp_path / "out" / "latest" / "brief.md").read_text()
+    assert "| Net GEX | Call GEX | Put GEX |" in brief and "Abs gamma" not in brief
     assert "| Next call walls | Next put walls |" in brief and "Max call OI" not in brief
     summary = json.loads((tmp_path / "out" / "QQQ" / STAMP / "summary.json").read_text())
     assert " / ".join(f"{k:g}" for k in summary["call_walls"][1:]) in brief

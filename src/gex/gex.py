@@ -432,6 +432,8 @@ class GexResult:
             "derived": False,
             "derived_from": None,
             "net_gex": self.total_gex,
+            "call_gex": float(self.contracts.loc[self.contracts["type"] == "call", "gex"].sum()),
+            "put_gex": float(self.contracts.loc[self.contracts["type"] == "put", "gex"].sum()),
             "regime": self.regime,
             "regime_description": REGIME_DESCRIPTIONS[self.regime],
             "call_wall": self.call_wall,
@@ -515,7 +517,7 @@ def compute(
 # -------------------------------------------------------------- proxy levels
 
 PRICE_LEVELS = ("call_wall", "put_wall", "abs_gamma_strike", "zero_gamma", "max_call_oi_strike", "max_put_oi_strike")
-DOLLAR_EXPOSURES = ("net_gex", "net_dex", "net_vanna", "net_charm")
+DOLLAR_EXPOSURES = ("net_gex", "call_gex", "put_gex", "net_dex", "net_vanna", "net_charm")
 
 
 def derive_summary(proxy: dict, ticker: str, spot: float) -> dict:

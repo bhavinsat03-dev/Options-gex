@@ -233,21 +233,20 @@ def render_brief(summaries: list[dict], as_of: str, window: str = "",
     """Two-table markdown update: levels, then dealer positioning and volatility."""
     ok = [s for s in summaries if not str(s.get("status", "ok")).startswith("error")]
     lines = [f"## {title}: {as_of}", ""] + ([window, ""] if window else []) + ["### 1) Levels", "",
-             "| Ticker | Spot | Regime | Vs flip | Zero gamma | Call wall (OI) | Put wall (OI) "
-             "| Next call walls | Next put walls | Abs gamma | Expected move |",
-             "|---|---|---|---|---|---|---|---|---|---|---|"]
+             "| Ticker | Spot | Regime | Vs flip | Zero gamma | Net GEX | Call GEX | Put GEX "
+             "| Call wall (OI) | Put wall (OI) | Next call walls | Next put walls |",
+             "|---|---|---|---|---|---|---|---|---|---|---|---|"]
     for s in ok:
-        zg, em = s.get("zero_gamma"), s.get("expected_move")
+        zg = s.get("zero_gamma")
         vs_flip = f"{(s['spot'] / zg - 1) * 100:+.2f}%" if zg else "-"
         lines.append("| " + " | ".join([
             s["ticker"] + (f" (from {s['derived_from']})" if s.get("derived") else ""),
             num(s["spot"]), s["regime"].split()[0], vs_flip, num(zg),
+            _flow(s.get("net_gex")), _flow(s.get("call_gex")), _flow(s.get("put_gex")),
             _strike_oi(s.get("call_wall"), s.get("call_wall_oi")),
             _strike_oi(s.get("put_wall"), s.get("put_wall_oi")),
             " / ".join(f"{k:g}" for k in s.get("call_walls", [])[1:]) or "-",
             " / ".join(f"{k:g}" for k in s.get("put_walls", [])[1:]) or "-",
-            num(s.get("abs_gamma_strike")),
-            f"{num(em['low'])}–{num(em['high'])}" if em else "-",
         ]) + " |")
     lines += ["", "### 2) Dealer positioning and volatility", "",
               "| Ticker | Net GEX (per 1%) | Net DEX | Vanna (per vol pt) | Charm (per day) "

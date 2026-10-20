@@ -1,0 +1,40 @@
+# AMD gamma exposure report
+
+As of 2026-10-20T22:32:22+00:00.
+
+| Metric | Value | What it means |
+|---|---|---|
+| Spot | 534.74 | The underlying price used for every calculation in this run. |
+| Net GEX | -$98.0M | Dollars of stock dealers would trade to re-hedge for a 1% move; positive means they trade against the move, negative means with it. |
+| Regime | negative gamma | Dealer hedging tends to reinforce price moves, a condition historically associated with higher realized volatility. |
+| Call walls (top 3) | 550.00, 620.00, 540.00 | Strikes holding the most dealer call gamma, where hedging flows have tended to slow rallies. |
+| Put walls (top 3) | 530.00, 550.00, 540.00 | Strikes holding the most dealer put gamma, where hedging flows have tended to slow or, if broken, accelerate declines. |
+| Call wall expiries | 550.00: 2026-10-23 51%, 2026-10-21 19%, 2026-11-20 17%; 620.00: 2026-11-20 56%, 2026-10-30 28%, 2026-11-06 7%; 540.00: 2026-10-23 46%, 2026-10-21 25%, 2026-11-20 15% | For each call wall, the expirations holding most of its gamma and their share; a wall made of near-dated options disappears when they expire. |
+| Put wall expiries | 530.00: 2026-10-23 33%, 2026-10-21 23%, 2026-11-20 16%; 550.00: 2026-10-23 31%, 2026-11-20 31%, 2026-10-30 19%; 540.00: 2026-10-23 37%, 2026-10-21 22%, 2026-10-30 16% | For each put wall, the expirations holding most of its gamma and their share. |
+| Absolute gamma strike | 550.00 | The single strike with the most total gamma (calls plus puts), often the strongest price magnet. |
+| Zero-gamma flip | 548.33 | The price at which total dealer gamma would change sign; above it hedging tends to dampen moves, below it to amplify them. |
+| Net DEX | $7.56B | Dollar delta dealers hold from these options; it is what their stock hedge must offset. |
+| Net vanna | $30.1M | How much dealer dollar delta changes if implied volatility rises one point; a falling-vol environment flips the sign of the flow. |
+| Net charm | -$137.2M | How much dealer dollar delta changes per day from time decay alone, with price and volatility unchanged. |
+| Expected move | ±14.90 (2.8%) -> 519.84 to 549.64, exp 2026-10-21 | The nearest-expiry at-the-money straddle price, i.e. the size of move the options market is pricing by that expiry. |
+| Total call / put OI | 387,179 calls / 389,124 puts | Open contracts across all fetched expirations and strikes. |
+| Strongest OI strikes | calls 620.00 (27,040); puts 440.00 (21,032) | The strikes with the most open call and put contracts; these are often further from price and longer-dated than the gamma walls. |
+| Wall OI by expiry | call wall 550 calls, 9,809 OI: 2026-10-23 36% (3,544), 2026-11-20 36% (3,522), 2026-10-21 11% (1,083); put wall 530 puts, 9,514 OI: 2026-11-20 33% (3,152), 2026-11-06 20% (1,920), 2026-10-23 20% (1,898); max call OI 620 calls, 27,040 OI: 2026-11-20 42% (11,386), 2026-10-30 27% (7,344), 2026-10-23 18% (4,987); max put OI 440 puts, 21,032 OI: 2026-11-20 92% (19,355), 2026-10-23 3% (602), 2026-11-06 2% (426) | Which expirations hold the open contracts at each key strike; positions expiring soon disappear after that date. |
+| OI at main walls | call wall 550.00: 9,809 calls; put wall 530.00: 9,514 puts | Open contracts at the strongest call and put wall strikes, summed across expirations. |
+| Put/call OI ratio | 1.01 | Put open interest divided by call open interest across the fetched expirations; above 1 means more puts outstanding. |
+| 25-delta skew | -0.12 vol pts (put 59.3%, call 59.4%, exp 2026-11-20) | Implied vol of a 25-delta put minus a 25-delta call; higher means downside protection is priced richer than upside. |
+| \|GEX\| from 0DTE | 0.0% | Share of total gamma expiring today, which disappears at today's close. |
+| \|GEX\| from rest of this week | 50.8% | Share of total gamma expiring later this week. |
+| \|GEX\| from rest of this month | 17.7% | Share of total gamma expiring after this week but within this calendar month. |
+| \|GEX\| beyond this month | 31.5% | Share of total gamma expiring in later months, the most persistent part of positioning. |
+| GEX after monthly expiry (2026-11-20) | -$2.7M net, 1.0% of \|GEX\| | The gamma that will still be in place once the next standard monthly options expire. |
+
+## Changes since previous run (2026-10-20T19:30:24+00:00)
+
+- Call wall: 550.00 -> 550.00 (+0.00)
+- Put wall: 550.00 -> 530.00 (-20.00)
+- Zero gamma: 548.43 -> 548.33 (-0.10)
+- Abs gamma strike: 550.00 -> 550.00 (+0.00)
+- Net GEX: -$65.2M -> -$98.0M (-$32.8M)
+
+_Positioning estimates assume dealers are long calls and short puts and use Yahoo open interest, which updates once per day. Descriptive only; not trading advice._

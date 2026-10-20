@@ -63,3 +63,10 @@ def test_select_expirations_rolling_window_without_cap():
     sel = select_expirations(exps, today, Settings())  # defaults: 45 days, no cap
     assert sel[0] == "2026-10-20" and sel[-1] == "2026-12-03"  # day 44; day 46 is outside
     assert len(sel) == 23
+
+
+def test_select_expirations_weekly_window():
+    today = date(2026, 10, 20)
+    exps = [(today + timedelta(days=d)).isoformat() for d in range(0, 30)]
+    sel = select_expirations(exps, today, Settings(max_dte=7))
+    assert sel[0] == "2026-10-20" and sel[-1] == "2026-10-27" and len(sel) == 8

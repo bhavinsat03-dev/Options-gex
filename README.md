@@ -235,3 +235,9 @@ src/gex/
 ├── plot.py     # gex.png and gamma_profile.png
 └── cli.py      # argument parsing, per-ticker runs, outputs
 ```
+
+### Weekly SPY/QQQ table
+
+Each scheduled post also includes a second set of tables for SPY and QQQ computed
+from only the options expiring in the next 7 days (`WEEKLY_TICKERS` in the
+workflow). Locally: `python -m gex SPY QQQ --max-dte 7 --no-history --title "Weekly"`.

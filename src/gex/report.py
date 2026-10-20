@@ -207,7 +207,7 @@ def _date(exp: str) -> str:
     return datetime.strptime(exp, "%Y-%m-%d").strftime("%b %d")
 
 
-def key_expiry_line(s: dict, prev: dict | None) -> str:
+def key_expiry_line(s: dict, prev: dict | None, show_change: bool = True) -> str:
     """'call wall 770: Nov 20 25%, Oct 23 23% (OI 57,001, +1,234 vs Oct 19) · put wall ...'"""
     parts = []
     for key, side, label in (("call_wall", "call", "call wall"), ("put_wall", "put", "put wall")):
@@ -216,6 +216,9 @@ def key_expiry_line(s: dict, prev: dict | None) -> str:
             continue
         exps = ", ".join(f"{_date(x['expiration'])} {x['pct']:.0f}%" for x in e["expiries"][:2])
         before = _prior_oi(prev, side, e["strike"])
+        if not show_change:
+            parts.append(f"{label} **{e['strike']:g}**: {exps} (OI {e['oi']:,})")
+            continue
         if before is None:
             change = "no prior day"
         else:
@@ -226,10 +229,10 @@ def key_expiry_line(s: dict, prev: dict | None) -> str:
 
 
 def render_brief(summaries: list[dict], as_of: str, window: str = "",
-                 previous: dict[str, dict] | None = None) -> str:
+                 previous: dict[str, dict] | None = None, title: str = "GEX update") -> str:
     """Two-table markdown update: levels, then dealer positioning and volatility."""
     ok = [s for s in summaries if not str(s.get("status", "ok")).startswith("error")]
-    lines = [f"## GEX update: {as_of}", ""] + ([window, ""] if window else []) + ["### 1) Levels", "",
+    lines = [f"## {title}: {as_of}", ""] + ([window, ""] if window else []) + ["### 1) Levels", "",
              "| Ticker | Spot | Regime | Vs flip | Zero gamma | Call wall (OI) | Put wall (OI) "
              "| Next call walls | Next put walls | Abs gamma | Expected move |",
              "|---|---|---|---|---|---|---|---|---|---|---|"]
@@ -260,9 +263,11 @@ def render_brief(summaries: list[dict], as_of: str, window: str = "",
             f"{sk['call_iv'] * 100:.0f}%" if sk else "-",
             num(s.get("put_call_oi_ratio")),
         ]) + " |")
-    lines += ["", "### 3) Key expiries and wall OI change", ""]
+    # previous=None means history is off: list expiries without the OI change.
+    lines += ["", "### 3) Key expiries" + (" and wall OI change" if previous is not None else ""), ""]
     for s in ok:
-        lines.append(f"- **{s['ticker']}**: {key_expiry_line(s, (previous or {}).get(s['ticker']))}")
+        prev = (previous or {}).get(s["ticker"])
+        lines.append(f"- **{s['ticker']}**: {key_expiry_line(s, prev, previous is not None)}")
     failed = [s for s in summaries if str(s.get("status", "")).startswith("error")]
     if failed:
         lines += ["", "Failed: " + ", ".join(f"{s['ticker']} ({s['status']})" for s in failed)]

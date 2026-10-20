@@ -41,6 +41,7 @@ def parse_args(argv=None) -> argparse.Namespace:
     p.add_argument("--strike-range", type=float, help="keep strikes within spot +/- this fraction")
     p.add_argument("--no-plots", action="store_true", help="skip chart generation")
     p.add_argument("--no-history", action="store_true", help="do not save or compare run history")
+    p.add_argument("--title", default="GEX update", help="heading for latest/brief.md")
     p.add_argument("-v", "--verbose", action="store_true")
     return p.parse_args(argv)
 
@@ -242,8 +243,8 @@ def main(argv=None, fetch=data.fetch_chain, fetch_spot=data.fetch_spot_only,
     previous = {
         r["ticker"]: history.load_previous_day(runner.history_dir, r["ticker"], runner.stamp)
         for r in results if not str(r.get("status", "")).startswith("error")
-    }
-    (latest / "brief.md").write_text(report.render_brief(results, as_of, window, previous))
+    } if settings.history else None
+    (latest / "brief.md").write_text(report.render_brief(results, as_of, window, previous, args.title))
 
     print(format_table(table))
     if table["source"].astype(str).str.startswith("derived").any():

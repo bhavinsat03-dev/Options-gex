@@ -157,3 +157,10 @@ def test_oi_change_labels_previous_day_in_new_york_time(tmp_path):
     s = {"oi_expiries": {"call_wall": {"strike": 110.0, "type": "call", "oi": 10000,
                                        "expiries": [{"expiration": "2026-11-20", "oi": 10000, "pct": 100.0}]}}}
     assert "+1,000 vs Oct 19" in report.key_expiry_line(s, prev)
+
+
+def test_weekly_brief_without_history(tmp_path, now):
+    run(tmp_path, now, "QQQ", "--no-plots", "--no-history", "--max-dte", "7", "--title", "Weekly")
+    brief = (tmp_path / "out" / "latest" / "brief.md").read_text()
+    assert brief.startswith("## Weekly: ")
+    assert "### 3) Key expiries\n" in brief and "vs " not in brief and "no prior day" not in brief

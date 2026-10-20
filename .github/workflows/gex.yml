@@ -26,6 +26,7 @@ on:
 
 env:
   TICKERS: META SPY QQQ TSLA BABA MU AMD SPCX IWM   # tickers for scheduled runs
+  WEEKLY_TICKERS: SPY QQQ  # extra table using only the next 7 days of expirations
   DATA_BRANCH: gex-data    # results and history are committed here
 
 permissions:
@@ -88,6 +89,16 @@ jobs:
             echo "$SLOT" >> data/output/latest/slots.txt
             tail -n 60 data/output/latest/slots.txt > /tmp/s && mv /tmp/s data/output/latest/slots.txt
           fi
+
+      - name: Run weekly SPY/QQQ table
+        if: steps.gate.outputs.run == 'true'
+        continue-on-error: true
+        env:
+          PYTHONPATH: src
+        run: |
+          python -m gex $WEEKLY_TICKERS --max-dte 7 --no-history --no-plots \
+            --title "Weekly expiries (next 7 days): SPY & QQQ" -o data/weekly
+          { echo; echo "---"; echo; cat data/weekly/latest/brief.md; } >> data/output/latest/brief.md
 
       - name: Job summary
         if: steps.gate.outputs.run == 'true' && always()

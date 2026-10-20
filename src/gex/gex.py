@@ -133,6 +133,24 @@ def wall_expiries(contracts: pd.DataFrame, strikes: list[float], option_type: st
     return out
 
 
+def oi_by_expiry(contracts: pd.DataFrame, strike: float | None, option_type: str, top: int = 3) -> dict | None:
+    """Open interest at one strike split by expiration, largest first."""
+    if strike is None:
+        return None
+    at = contracts[(contracts["type"] == option_type) & (contracts["strike"] == strike)]
+    by_exp = at.groupby("expiration")["open_interest"].sum()
+    total = int(by_exp.sum())
+    return {
+        "strike": strike,
+        "type": option_type,
+        "oi": total,
+        "expiries": [
+            {"expiration": str(e), "oi": int(v), "pct": float(v / total * 100)}
+            for e, v in by_exp.nlargest(top).items()
+        ] if total else [],
+    }
+
+
 def absolute_gamma_strike(by_strike: pd.DataFrame) -> float | None:
     """Strike with the largest |call GEX| + |put GEX|."""
     if by_strike.empty or not (by_strike["abs_gex"] > 0).any():
@@ -423,6 +441,12 @@ class GexResult:
             "total_call_oi": self.total_call_oi,
             "total_put_oi": self.total_put_oi,
             "call_wall_oi": strike_oi(self.by_strike, self.call_wall, "call_oi"),
+            "oi_expiries": {
+                "call_wall": oi_by_expiry(self.contracts, self.call_wall, "call"),
+                "put_wall": oi_by_expiry(self.contracts, self.put_wall, "put"),
+                "max_call_oi": oi_by_expiry(self.contracts, max_oi_strike(self.by_strike, "call_oi")[0], "call"),
+                "max_put_oi": oi_by_expiry(self.contracts, max_oi_strike(self.by_strike, "put_oi")[0], "put"),
+            },
             "max_call_oi_strike": max_oi_strike(self.by_strike, "call_oi")[0],
             "max_call_oi": max_oi_strike(self.by_strike, "call_oi")[1],
             "max_put_oi_strike": max_oi_strike(self.by_strike, "put_oi")[0],
@@ -520,6 +544,7 @@ def derive_summary(proxy: dict, ticker: str, spot: float) -> dict:
             call_price=None,
             put_price=None,
         )
+    out["oi_expiries"] = {}
     exp_conc = proxy.get("expiry_concentration")
     if exp_conc:
         out["expiry_concentration"] = dict(exp_conc, net_gex_after_monthly=None)

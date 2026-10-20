@@ -41,6 +41,14 @@ def wall_expiry_text(walls) -> str:
     )
 
 
+def oi_expiry_text(entry) -> str:
+    """'750 puts, 18,780 OI: 2026-11-20 61% (11,456), 2026-10-23 20% (3,756)'"""
+    if not entry:
+        return "n/a"
+    parts = ", ".join(f"{e['expiration']} {e['pct']:.0f}% ({e['oi']:,})" for e in entry["expiries"])
+    return f"{entry['strike']:g} {entry['type']}s, {entry['oi']:,} OI: {parts or 'n/a'}"
+
+
 def _signed(x, money_fmt: bool) -> str:
     text = money(x) if money_fmt else num(x)
     return text if x < 0 else "+" + text
@@ -99,6 +107,11 @@ def metric_rows(s: dict) -> list[tuple[str, str, str]]:
          + f"; puts {num(s.get('max_put_oi_strike'))}"
          + (f" ({s['max_put_oi']:,})" if s.get("max_put_oi") is not None else ""),
          "The strikes with the most open call and put contracts; these are often further from price and longer-dated than the gamma walls."),
+        ("Wall OI by expiry",
+         "; ".join(f"{label} {oi_expiry_text((s.get('oi_expiries') or {}).get(key))}"
+                   for key, label in (("call_wall", "call wall"), ("put_wall", "put wall"),
+                                      ("max_call_oi", "max call OI"), ("max_put_oi", "max put OI"))),
+         "Which expirations hold the open contracts at each key strike; positions expiring soon disappear after that date."),
         ("OI at main walls",
          "n/a" if s.get("call_wall_oi") is None and s.get("put_wall_oi") is None
          else f"call wall {num(s.get('call_wall'))}: {s.get('call_wall_oi') or 0:,} calls; put wall {num(s.get('put_wall'))}: {s.get('put_wall_oi') or 0:,} puts",

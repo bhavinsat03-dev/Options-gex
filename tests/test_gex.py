@@ -289,3 +289,12 @@ def test_max_oi_strikes(raw_chain, now):
     assert (s["max_put_oi_strike"], s["max_put_oi"]) == (90.0, 12000)
     d = gex.derive_summary(s, "NDX", 4100.0)
     assert d["max_call_oi_strike"] == pytest.approx(110.0 * 41) and d["max_call_oi"] is None
+
+
+def test_oi_by_expiry(raw_chain, now):
+    s = _result(raw_chain, now).summary()
+    e = s["oi_expiries"]["call_wall"]
+    assert e["strike"] == 110.0 and e["type"] == "call" and e["oi"] == 10000
+    assert sorted(x["expiration"] for x in e["expiries"]) == ["2026-10-23", "2026-11-20"]
+    assert sum(x["pct"] for x in e["expiries"]) == pytest.approx(100.0)
+    assert s["oi_expiries"]["max_put_oi"]["strike"] == 90.0

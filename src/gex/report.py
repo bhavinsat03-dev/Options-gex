@@ -4,6 +4,9 @@ from __future__ import annotations
 
 from datetime import datetime
 from pathlib import Path
+from zoneinfo import ZoneInfo
+
+NY = ZoneInfo("America/New_York")
 
 
 def money(x) -> str:
@@ -216,8 +219,8 @@ def key_expiry_line(s: dict, prev: dict | None) -> str:
         if before is None:
             change = "no prior day"
         else:
-            day = prev["as_of"][:10]
-            change = f"{e['oi'] - before:+,} vs {_date(day)}"
+            day = datetime.fromisoformat(prev["as_of"]).astimezone(NY)
+            change = f"{e['oi'] - before:+,} vs {day:%b %d}"
         parts.append(f"{label} **{e['strike']:g}**: {exps} (OI {e['oi']:,}, {change})")
     return " · ".join(parts) or "-"
 

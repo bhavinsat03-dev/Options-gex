@@ -146,3 +146,14 @@ def test_brief_key_expiries_and_oi_change(tmp_path, now):
              fetch=fetch_more, now=now + timedelta(days=1))
     brief = (tmp_path / "out" / "latest" / "brief.md").read_text()
     assert "call wall **110**" in brief and "OI 11,000, +1,000 vs Oct 16" in brief
+
+
+def test_oi_change_labels_previous_day_in_new_york_time(tmp_path):
+    from gex import report
+    from datetime import datetime, timezone
+    # 21:26 ET on Oct 19 is 01:26 UTC on Oct 20; label must say Oct 19.
+    prev = {"as_of": datetime(2026, 10, 20, 1, 26, tzinfo=timezone.utc).isoformat(),
+            "oi_at": {"call": {"110": 9000}, "put": {}}}
+    s = {"oi_expiries": {"call_wall": {"strike": 110.0, "type": "call", "oi": 10000,
+                                       "expiries": [{"expiration": "2026-11-20", "oi": 10000, "pct": 100.0}]}}}
+    assert "+1,000 vs Oct 19" in report.key_expiry_line(s, prev)

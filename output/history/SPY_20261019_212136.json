@@ -1,0 +1,262 @@
+{
+  "ticker": "SPY",
+  "spot": 766.48,
+  "derived": false,
+  "derived_from": null,
+  "net_gex": -8826479199.929672,
+  "regime": "negative gamma",
+  "regime_description": "Dealer hedging tends to reinforce price moves, a condition historically associated with higher realized volatility.",
+  "call_wall": 770.0,
+  "put_wall": 750.0,
+  "call_walls": [
+    770.0,
+    780.0,
+    775.0
+  ],
+  "put_walls": [
+    750.0,
+    760.0,
+    765.0
+  ],
+  "call_wall_expiries": [
+    {
+      "strike": 770.0,
+      "expiries": [
+        {
+          "expiration": "2026-10-23",
+          "pct": 29.79401966822317
+        },
+        {
+          "expiration": "2026-10-20",
+          "pct": 19.852967598798493
+        },
+        {
+          "expiration": "2026-10-30",
+          "pct": 16.491911008517818
+        }
+      ]
+    },
+    {
+      "strike": 780.0,
+      "expiries": [
+        {
+          "expiration": "2026-10-30",
+          "pct": 31.08640652186804
+        },
+        {
+          "expiration": "2026-10-23",
+          "pct": 30.46106396172666
+        },
+        {
+          "expiration": "2026-11-20",
+          "pct": 14.418758678666634
+        }
+      ]
+    },
+    {
+      "strike": 775.0,
+      "expiries": [
+        {
+          "expiration": "2026-10-23",
+          "pct": 19.99197199137178
+        },
+        {
+          "expiration": "2026-10-30",
+          "pct": 19.01742304873346
+        },
+        {
+          "expiration": "2026-11-20",
+          "pct": 14.112128440585511
+        }
+      ]
+    }
+  ],
+  "put_wall_expiries": [
+    {
+      "strike": 750.0,
+      "expiries": [
+        {
+          "expiration": "2026-10-30",
+          "pct": 54.362723669075386
+        },
+        {
+          "expiration": "2026-11-20",
+          "pct": 24.62026621929665
+        },
+        {
+          "expiration": "2026-11-06",
+          "pct": 6.6791021021246
+        }
+      ]
+    },
+    {
+      "strike": 760.0,
+      "expiries": [
+        {
+          "expiration": "2026-10-30",
+          "pct": 51.53728939075275
+        },
+        {
+          "expiration": "2026-10-23",
+          "pct": 14.242093219414118
+        },
+        {
+          "expiration": "2026-11-20",
+          "pct": 13.846017266047644
+        }
+      ]
+    },
+    {
+      "strike": 765.0,
+      "expiries": [
+        {
+          "expiration": "2026-10-30",
+          "pct": 46.87165809076852
+        },
+        {
+          "expiration": "2026-10-23",
+          "pct": 18.523594256242724
+        },
+        {
+          "expiration": "2026-11-20",
+          "pct": 13.478355344704477
+        }
+      ]
+    }
+  ],
+  "abs_gamma_strike": 760.0,
+  "zero_gamma": 773.76,
+  "net_dex": 74750065364.46619,
+  "net_vanna": 2982904954.4140563,
+  "net_charm": -3105050887.368923,
+  "expected_move": {
+    "expiration": "2026-10-20",
+    "strike": 766.0,
+    "call_price": 2.705,
+    "put_price": 1.6949999999999998,
+    "move": 4.4,
+    "move_pct": 0.5740528128587831,
+    "low": 762.08,
+    "high": 770.88
+  },
+  "put_call_oi_ratio": 2.9631958577052795,
+  "total_call_oi": 1913915,
+  "total_put_oi": 5671305,
+  "call_wall_oi": 57001,
+  "oi_expiries": {
+    "call_wall": {
+      "strike": 770.0,
+      "type": "call",
+      "oi": 57001,
+      "expiries": [
+        {
+          "expiration": "2026-11-20",
+          "oi": 14397,
+          "pct": 25.257451623655726
+        },
+        {
+          "expiration": "2026-10-23",
+          "oi": 13330,
+          "pct": 23.385554639392293
+        },
+        {
+          "expiration": "2026-10-30",
+          "oi": 12336,
+          "pct": 21.64172558376169
+        }
+      ]
+    },
+    "put_wall": {
+      "strike": 750.0,
+      "type": "put",
+      "oi": 238051,
+      "expiries": [
+        {
+          "expiration": "2026-10-30",
+          "oi": 115566,
+          "pct": 48.54673998428908
+        },
+        {
+          "expiration": "2026-11-20",
+          "oi": 69729,
+          "pct": 29.291622383438842
+        },
+        {
+          "expiration": "2026-11-06",
+          "oi": 15956,
+          "pct": 6.702765373806454
+        }
+      ]
+    },
+    "max_call_oi": {
+      "strike": 800.0,
+      "type": "call",
+      "oi": 133908,
+      "expiries": [
+        {
+          "expiration": "2026-11-20",
+          "oi": 53761,
+          "pct": 40.147713355438064
+        },
+        {
+          "expiration": "2026-10-30",
+          "oi": 48886,
+          "pct": 36.507154165546496
+        },
+        {
+          "expiration": "2026-10-23",
+          "oi": 9516,
+          "pct": 7.1063715386683395
+        }
+      ]
+    },
+    "max_put_oi": {
+      "strike": 750.0,
+      "type": "put",
+      "oi": 238051,
+      "expiries": [
+        {
+          "expiration": "2026-10-30",
+          "oi": 115566,
+          "pct": 48.54673998428908
+        },
+        {
+          "expiration": "2026-11-20",
+          "oi": 69729,
+          "pct": 29.291622383438842
+        },
+        {
+          "expiration": "2026-11-06",
+          "oi": 15956,
+          "pct": 6.702765373806454
+        }
+      ]
+    }
+  },
+  "max_call_oi_strike": 800.0,
+  "max_call_oi": 133908,
+  "max_put_oi_strike": 750.0,
+  "max_put_oi": 238051,
+  "put_wall_oi": 238051,
+  "skew_25d": {
+    "expiration": "2026-11-20",
+    "days": 31.818330116296295,
+    "put_iv": 0.1586996037731477,
+    "call_iv": 0.12884718410050663,
+    "skew": 2.9852419672641073
+  },
+  "expiry_concentration": {
+    "pct_abs_gex": {
+      "0dte": 0.0,
+      "this_week": 37.896399718481405,
+      "this_month": 30.789737971528396,
+      "beyond": 31.3138623099902
+    },
+    "next_monthly_expiry": "2026-11-20",
+    "net_gex_after_monthly": -268942559.11662614,
+    "pct_abs_gex_after_monthly": 4.608977166522947
+  },
+  "contracts": 3048,
+  "expirations": 14,
+  "as_of": "2026-10-20T01:21:36+00:00"
+}

@@ -19,6 +19,9 @@ on:
       tickers:
         description: "Tickers (space separated)"
         default: "META SPY QQQ TSLA BABA MU AMD SPCX IWM"
+      max_dte:
+        description: "One-off expiry window in days (e.g. 72); written to adhoc/, no history"
+        default: ""
       notify:
         description: "Post the update to the GEX updates issue"
         type: boolean
@@ -77,8 +80,18 @@ jobs:
             printf '*.png\ncontracts.csv\n' > data/.gitignore
           fi
 
+      - name: Run one-off window
+        if: steps.gate.outputs.run == 'true' && inputs.max_dte != ''
+        env:
+          PYTHONPATH: src
+          INPUT_TICKERS: ${{ inputs.tickers }}
+          MAX_DTE: ${{ inputs.max_dte }}
+        run: |
+          python -m gex $INPUT_TICKERS --max-dte "$MAX_DTE" --no-history --no-plots \
+            --title "One-off (next $MAX_DTE days)" -o data/adhoc
+
       - name: Run GEX
-        if: steps.gate.outputs.run == 'true'
+        if: steps.gate.outputs.run == 'true' && inputs.max_dte == ''
         env:
           PYTHONPATH: src
           INPUT_TICKERS: ${{ inputs.tickers }}
@@ -91,7 +104,7 @@ jobs:
           fi
 
       - name: Run weekly SPY/QQQ table
-        if: steps.gate.outputs.run == 'true'
+        if: steps.gate.outputs.run == 'true' && inputs.max_dte == ''
         continue-on-error: true
         env:
           PYTHONPATH: src
@@ -103,12 +116,14 @@ jobs:
       - name: Job summary
         if: steps.gate.outputs.run == 'true' && always()
         run: |
-          cat data/output/latest/brief.md >> "$GITHUB_STEP_SUMMARY" 2>/dev/null || echo "No brief produced" >> "$GITHUB_STEP_SUMMARY"
+          brief=data/output/latest/brief.md
+          [ -n "${{ inputs.max_dte }}" ] && brief=data/adhoc/latest/brief.md
+          cat "$brief" >> "$GITHUB_STEP_SUMMARY" 2>/dev/null || echo "No brief produced" >> "$GITHUB_STEP_SUMMARY"
 
       # Scheduled runs (and manual runs with "notify") post the two-table brief as a
       # comment on the "GEX updates" issue, which sends a GitHub notification.
       - name: Post update
-        if: steps.gate.outputs.run == 'true' && (github.event_name == 'schedule' || inputs.notify) && hashFiles('data/output/latest/brief.md') != ''
+        if: steps.gate.outputs.run == 'true' && inputs.max_dte == '' && (github.event_name == 'schedule' || inputs.notify) && hashFiles('data/output/latest/brief.md') != ''
         env:
           GH_TOKEN: ${{ github.token }}
           TITLE: GEX updates

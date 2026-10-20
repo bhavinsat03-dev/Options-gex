@@ -69,7 +69,8 @@ def select_expirations(expirations, today: date, settings: Settings) -> list[str
         dte = (date.fromisoformat(exp) - today).days
         if 0 <= dte <= settings.max_dte:
             selected.append(exp)
-    return sorted(selected)[: settings.max_expirations]
+    selected.sort()
+    return selected[: settings.max_expirations] if settings.max_expirations > 0 else selected
 
 
 def _normalize(df: pd.DataFrame, option_type: str, expiration: str) -> pd.DataFrame:

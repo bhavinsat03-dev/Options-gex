@@ -186,10 +186,10 @@ def _strike_oi(strike, oi) -> str:
     return f"{strike:g}" if oi is None else f"{strike:g} ({oi:,})"
 
 
-def render_brief(summaries: list[dict], as_of: str) -> str:
+def render_brief(summaries: list[dict], as_of: str, window: str = "") -> str:
     """Two-table markdown update: levels, then dealer positioning and volatility."""
     ok = [s for s in summaries if not str(s.get("status", "ok")).startswith("error")]
-    lines = [f"## GEX update: {as_of}", "", "### 1) Levels", "",
+    lines = [f"## GEX update: {as_of}", ""] + ([window, ""] if window else []) + ["### 1) Levels", "",
              "| Ticker | Spot | Regime | Vs flip | Zero gamma | Call wall (OI) | Put wall (OI) "
              "| Next call walls | Next put walls | Abs gamma | Expected move |",
              "|---|---|---|---|---|---|---|---|---|---|---|"]

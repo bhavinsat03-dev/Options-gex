@@ -6,8 +6,8 @@ risk_free_rate = 0.04
 dividend_yield = 0.0
 
 # Chain selection and cleaning
-max_dte = 60               # ignore expirations further out than this (days)
-max_expirations = 12       # cap on expirations fetched per ticker
+max_dte = 45               # rolling window: every expiration within the next 45 days
+max_expirations = 0        # cap on expirations per ticker (0 = no cap)
 strike_range_pct = 0.20    # keep strikes within spot +/- 20%
 min_open_interest = 1
 min_iv = 0.01              # drop contracts with IV below 1% (Yahoo placeholder values)

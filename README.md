@@ -36,8 +36,8 @@ python -m gex SPY --max-dte 30 --strike-range 0.1 -v
 | `TICKER ...` | Tickers to run. These override `tickers` in the config. |
 | `-c, --config` | TOML config file (default `config.toml`) |
 | `-o, --output-dir` | Output root (default `output/`) |
-| `--max-dte N` | Only use expirations within N days |
-| `--max-expirations N` | Cap on the number of expirations per ticker |
+| `--max-dte N` | Rolling expiration window in days (default 45): every expiration within the next N days is used |
+| `--max-expirations N` | Cap on the number of expirations per ticker (0 = no cap, the default) |
 | `--strike-range F` | Keep strikes within spot ± F (for example 0.2 = ±20%) |
 | `--no-plots` | Skip PNG charts |
 | `--no-history` | Don't save to, or compare against, run history |

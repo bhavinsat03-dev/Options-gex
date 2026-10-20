@@ -1,4 +1,4 @@
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 
 import numpy as np
 import pandas as pd
@@ -55,3 +55,11 @@ def test_load_settings_rejects_unknown_keys(tmp_path):
     p.write_text("max_dtee = 30\n")
     with pytest.raises(ValueError):
         load_settings(p)
+
+
+def test_select_expirations_rolling_window_without_cap():
+    today = date(2026, 10, 20)
+    exps = [(today + timedelta(days=d)).isoformat() for d in range(0, 80, 2)]
+    sel = select_expirations(exps, today, Settings())  # defaults: 45 days, no cap
+    assert sel[0] == "2026-10-20" and sel[-1] == "2026-12-03"  # day 44; day 46 is outside
+    assert len(sel) == 23

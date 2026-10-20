@@ -19,8 +19,8 @@ class Settings:
     risk_free_rate: float = 0.04
     dividend_yield: float = 0.0
     # Chain selection / cleaning
-    max_dte: int = 60
-    max_expirations: int = 12
+    max_dte: int = 45  # rolling window of expirations, in calendar days
+    max_expirations: int = 0  # 0 = every expiration in the window
     strike_range_pct: float = 0.20
     min_open_interest: int = 1
     min_iv: float = 0.01

@@ -129,3 +129,20 @@ def test_brief_lists_next_walls(tmp_path, now):
     assert "| Next call walls | Next put walls |" in brief and "Max call OI" not in brief
     summary = json.loads((tmp_path / "out" / "QQQ" / STAMP / "summary.json").read_text())
     assert " / ".join(f"{k:g}" for k in summary["call_walls"][1:]) in brief
+
+
+def test_brief_key_expiries_and_oi_change(tmp_path, now):
+    run(tmp_path, now, "QQQ", "--no-plots")
+    brief = (tmp_path / "out" / "latest" / "brief.md").read_text()
+    assert "### 3) Key expiries and wall OI change" in brief and "no prior day" in brief
+
+    more = make_raw()
+    more.loc[(more["type"] == "call") & (more["strike"] == 110), "open_interest"] += 500
+
+    def fetch_more(ticker, settings, when):
+        return 100.0, more
+
+    cli.main(["QQQ", "-c", str(tmp_path / "config.toml"), "-o", str(tmp_path / "out"), "--no-plots"],
+             fetch=fetch_more, now=now + timedelta(days=1))
+    brief = (tmp_path / "out" / "latest" / "brief.md").read_text()
+    assert "call wall **110**" in brief and "OI 11,000, +1,000 vs Oct 16" in brief

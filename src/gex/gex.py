@@ -151,6 +151,15 @@ def oi_by_expiry(contracts: pd.DataFrame, strike: float | None, option_type: str
     }
 
 
+def oi_near_spot(by_strike: pd.DataFrame, spot: float, pct: float = 0.15) -> dict:
+    """{'call': {'770': oi, ...}, 'put': {...}} for strikes within spot +/- pct."""
+    near = by_strike[(by_strike["strike"] - spot).abs() <= spot * pct]
+    return {
+        side: {f"{k:g}": int(v) for k, v in zip(near["strike"], near[f"{side}_oi"]) if v > 0}
+        for side in ("call", "put")
+    }
+
+
 def absolute_gamma_strike(by_strike: pd.DataFrame) -> float | None:
     """Strike with the largest |call GEX| + |put GEX|."""
     if by_strike.empty or not (by_strike["abs_gex"] > 0).any():
@@ -441,6 +450,7 @@ class GexResult:
             "total_call_oi": self.total_call_oi,
             "total_put_oi": self.total_put_oi,
             "call_wall_oi": strike_oi(self.by_strike, self.call_wall, "call_oi"),
+            "oi_at": oi_near_spot(self.by_strike, self.spot),
             "oi_expiries": {
                 "call_wall": oi_by_expiry(self.contracts, self.call_wall, "call"),
                 "put_wall": oi_by_expiry(self.contracts, self.put_wall, "put"),
@@ -545,6 +555,7 @@ def derive_summary(proxy: dict, ticker: str, spot: float) -> dict:
             put_price=None,
         )
     out["oi_expiries"] = {}
+    out["oi_at"] = {}
     exp_conc = proxy.get("expiry_concentration")
     if exp_conc:
         out["expiry_concentration"] = dict(exp_conc, net_gex_after_monthly=None)

@@ -239,7 +239,11 @@ def main(argv=None, fetch=data.fetch_chain, fetch_spot=data.fetch_spot_only,
     as_of = runner.now.astimezone(data.NY).strftime("%Y-%m-%d %H:%M ET")
     window_end = runner.today + timedelta(days=settings.max_dte)
     window = f"Options expiring {runner.today:%b %d} to {window_end:%b %d} (rolling {settings.max_dte} days)."
-    (latest / "brief.md").write_text(report.render_brief(results, as_of, window))
+    previous = {
+        r["ticker"]: history.load_previous_day(runner.history_dir, r["ticker"], runner.stamp)
+        for r in results if not str(r.get("status", "")).startswith("error")
+    }
+    (latest / "brief.md").write_text(report.render_brief(results, as_of, window, previous))
 
     print(format_table(table))
     if table["source"].astype(str).str.startswith("derived").any():

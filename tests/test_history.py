@@ -20,3 +20,10 @@ def test_save_load_previous_and_diff(tmp_path):
     assert changes["put_wall"]["change"] == -5.0
     assert changes["net_gex"]["change"] == -1.5e9
     assert "zero_gamma" not in changes  # missing in new run
+
+
+def test_load_previous_day_skips_same_day(tmp_path):
+    history.save(tmp_path, {"ticker": "QQQ", "v": 1}, "20261019_150000")
+    history.save(tmp_path, {"ticker": "QQQ", "v": 2}, "20261020_095000")
+    assert history.load_previous_day(tmp_path, "QQQ", "20261020_123000")["v"] == 1
+    assert history.load_previous(tmp_path, "QQQ", "20261020_123000")["v"] == 2

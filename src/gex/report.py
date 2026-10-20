@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 from pathlib import Path
 
 
@@ -186,7 +187,43 @@ def _strike_oi(strike, oi) -> str:
     return f"{strike:g}" if oi is None else f"{strike:g} ({oi:,})"
 
 
-def render_brief(summaries: list[dict], as_of: str, window: str = "") -> str:
+def _prior_oi(prev: dict | None, side: str, strike: float) -> int | None:
+    """OI at ``strike`` in a previous summary, from oi_at or its wall fields."""
+    if not prev:
+        return None
+    at = (prev.get("oi_at") or {}).get(side, {})
+    if at:
+        return at.get(f"{strike:g}", 0)
+    for wall, oi in ((f"{side}_wall", f"{side}_wall_oi"), (f"max_{side}_oi_strike", f"max_{side}_oi")):
+        if prev.get(wall) == strike and prev.get(oi) is not None:
+            return prev[oi]
+    return None
+
+
+def _date(exp: str) -> str:
+    return datetime.strptime(exp, "%Y-%m-%d").strftime("%b %d")
+
+
+def key_expiry_line(s: dict, prev: dict | None) -> str:
+    """'call wall 770: Nov 20 25%, Oct 23 23% (OI 57,001, +1,234 vs Oct 19) · put wall ...'"""
+    parts = []
+    for key, side, label in (("call_wall", "call", "call wall"), ("put_wall", "put", "put wall")):
+        e = (s.get("oi_expiries") or {}).get(key)
+        if not e:
+            continue
+        exps = ", ".join(f"{_date(x['expiration'])} {x['pct']:.0f}%" for x in e["expiries"][:2])
+        before = _prior_oi(prev, side, e["strike"])
+        if before is None:
+            change = "no prior day"
+        else:
+            day = prev["as_of"][:10]
+            change = f"{e['oi'] - before:+,} vs {_date(day)}"
+        parts.append(f"{label} **{e['strike']:g}**: {exps} (OI {e['oi']:,}, {change})")
+    return " · ".join(parts) or "-"
+
+
+def render_brief(summaries: list[dict], as_of: str, window: str = "",
+                 previous: dict[str, dict] | None = None) -> str:
     """Two-table markdown update: levels, then dealer positioning and volatility."""
     ok = [s for s in summaries if not str(s.get("status", "ok")).startswith("error")]
     lines = [f"## GEX update: {as_of}", ""] + ([window, ""] if window else []) + ["### 1) Levels", "",
@@ -220,6 +257,9 @@ def render_brief(summaries: list[dict], as_of: str, window: str = "") -> str:
             f"{sk['call_iv'] * 100:.0f}%" if sk else "-",
             num(s.get("put_call_oi_ratio")),
         ]) + " |")
+    lines += ["", "### 3) Key expiries and wall OI change", ""]
+    for s in ok:
+        lines.append(f"- **{s['ticker']}**: {key_expiry_line(s, (previous or {}).get(s['ticker']))}")
     failed = [s for s in summaries if str(s.get("status", "")).startswith("error")]
     if failed:
         lines += ["", "Failed: " + ", ".join(f"{s['ticker']} ({s['status']})" for s in failed)]

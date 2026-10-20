@@ -34,6 +34,15 @@ def load_previous(history_dir: Path, ticker: str, stamp: str) -> dict | None:
     return json.loads(history_path(history_dir, ticker, stamps[-1]).read_text())
 
 
+def load_previous_day(history_dir: Path, ticker: str, stamp: str) -> dict | None:
+    """Most recent summary for ``ticker`` from a day before ``stamp``'s day.
+
+    Open interest updates once per day, so day-over-day is the meaningful
+    comparison for it. Stamps are YYYYMMDD_HHMMSS in New York time.
+    """
+    return load_previous(history_dir, ticker, stamp[:8] + "_000000")
+
+
 def save(history_dir: Path, summary: dict, stamp: str) -> Path:
     path = history_path(history_dir, summary["ticker"], stamp)
     path.parent.mkdir(parents=True, exist_ok=True)

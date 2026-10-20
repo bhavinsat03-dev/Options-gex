@@ -19,6 +19,9 @@ on:
       tickers:
         description: "Tickers (space separated)"
         default: "META SPY QQQ TSLA BABA MU AMD SPCX IWM"
+      slot:
+        description: "Claim a schedule slot, e.g. '2026-10-21 09:50' (posts and marks it done)"
+        default: ""
       max_dte:
         description: "One-off expiry window in days (e.g. 72); written to adhoc/, no history"
         default: ""
@@ -51,10 +54,11 @@ jobs:
         id: gate
         env:
           GH_TOKEN: ${{ github.token }}
+          CLAIMED_SLOT: ${{ inputs.slot }}
         run: |
           gh api "repos/$GITHUB_REPOSITORY/contents/output/latest/slots.txt?ref=$DATA_BRANCH" \
             -H "Accept: application/vnd.github.raw" > /tmp/slots.txt 2>/dev/null || : > /tmp/slots.txt
-          python3 .github/scripts/gate.py "$GITHUB_EVENT_NAME" /tmp/slots.txt | tee -a "$GITHUB_OUTPUT"
+          python3 .github/scripts/gate.py "$GITHUB_EVENT_NAME" /tmp/slots.txt "$CLAIMED_SLOT" | tee -a "$GITHUB_OUTPUT"
 
       - uses: actions/setup-python@v5
         if: steps.gate.outputs.run == 'true'
@@ -123,7 +127,7 @@ jobs:
       # Scheduled runs (and manual runs with "notify") post the two-table brief as a
       # comment on the "GEX updates" issue, which sends a GitHub notification.
       - name: Post update
-        if: steps.gate.outputs.run == 'true' && inputs.max_dte == '' && (github.event_name == 'schedule' || inputs.notify) && hashFiles('data/output/latest/brief.md') != ''
+        if: steps.gate.outputs.run == 'true' && inputs.max_dte == '' && (github.event_name == 'schedule' || inputs.notify || inputs.slot != '') && hashFiles('data/output/latest/brief.md') != ''
         env:
           GH_TOKEN: ${{ github.token }}
           TITLE: GEX updates

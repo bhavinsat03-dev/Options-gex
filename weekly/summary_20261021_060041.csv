@@ -1,0 +1,3 @@
+ticker,spot,net_gex,regime,call_wall,put_wall,abs_gamma_strike,zero_gamma,call_walls,put_walls,net_dex,net_vanna,net_charm,expected_move,em_low,em_high,put_call_oi_ratio,total_call_oi,total_put_oi,call_wall_oi,put_wall_oi,max_call_oi_strike,max_call_oi,max_put_oi_strike,max_put_oi,skew_25d,pct_0dte,pct_this_week,pct_this_month,pct_beyond,pct_after_monthly,source,status
+SPY,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,error: no contracts left after cleaning
+QQQ,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,error: no contracts left after cleaning

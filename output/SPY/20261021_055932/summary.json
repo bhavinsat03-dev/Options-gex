@@ -1,0 +1,164 @@
+{
+  "ticker": "SPY",
+  "spot": 769.05,
+  "derived": false,
+  "derived_from": null,
+  "net_gex": 17466.24518352385,
+  "call_gex": 17466.24518352385,
+  "put_gex": 0.0,
+  "regime": "positive gamma",
+  "regime_description": "Dealer hedging tends to offset price moves, a condition historically associated with lower realized volatility.",
+  "call_wall": 645.0,
+  "put_wall": null,
+  "call_walls": [
+    645.0,
+    677.0,
+    672.0
+  ],
+  "put_walls": [],
+  "call_wall_expiries": [
+    {
+      "strike": 645.0,
+      "expiries": [
+        {
+          "expiration": "2026-11-30",
+          "pct": 100.0
+        }
+      ]
+    },
+    {
+      "strike": 677.0,
+      "expiries": [
+        {
+          "expiration": "2026-11-30",
+          "pct": 100.0
+        }
+      ]
+    },
+    {
+      "strike": 672.0,
+      "expiries": [
+        {
+          "expiration": "2026-11-30",
+          "pct": 100.0
+        }
+      ]
+    }
+  ],
+  "put_wall_expiries": [],
+  "abs_gamma_strike": 645.0,
+  "zero_gamma": null,
+  "net_dex": 1214381.8762291404,
+  "net_vanna": -5825.815321948553,
+  "net_charm": 3279.1143965583506,
+  "expected_move": null,
+  "put_call_oi_ratio": 0.0,
+  "total_call_oi": 33,
+  "total_put_oi": 0,
+  "call_wall_oi": 16,
+  "oi_at": {
+    "call": {
+      "672": 1,
+      "677": 1
+    },
+    "put": {}
+  },
+  "oi_expiries": {
+    "call_wall": {
+      "strike": 645.0,
+      "type": "call",
+      "oi": 16,
+      "expiries": [
+        {
+          "expiration": "2026-11-30",
+          "oi": 16,
+          "pct": 100.0
+        }
+      ]
+    },
+    "put_wall": null,
+    "max_call_oi": {
+      "strike": 645.0,
+      "type": "call",
+      "oi": 16,
+      "expiries": [
+        {
+          "expiration": "2026-11-30",
+          "oi": 16,
+          "pct": 100.0
+        }
+      ]
+    },
+    "max_put_oi": null
+  },
+  "max_call_oi_strike": 645.0,
+  "max_call_oi": 16,
+  "max_put_oi_strike": null,
+  "max_put_oi": null,
+  "put_wall_oi": null,
+  "skew_25d": null,
+  "expiry_concentration": {
+    "pct_abs_gex": {
+      "0dte": 0.0,
+      "this_week": 0.0,
+      "this_month": 0.0,
+      "beyond": 100.0
+    },
+    "next_monthly_expiry": "2026-11-20",
+    "net_gex_after_monthly": 17466.24518352385,
+    "pct_abs_gex_after_monthly": 100.0
+  },
+  "volume_vs_oi": [],
+  "contracts": 3,
+  "expirations": 1,
+  "earnings_date": null,
+  "as_of": "2026-10-21T09:59:32+00:00",
+  "oi_changes": {
+    "adds": [
+      {
+        "expiration": "2026-11-30",
+        "strike": 637.0,
+        "type": "call",
+        "oi": 0,
+        "change": -1
+      },
+      {
+        "expiration": "2026-11-30",
+        "strike": 653.0,
+        "type": "call",
+        "oi": 0,
+        "change": -1
+      },
+      {
+        "expiration": "2026-11-30",
+        "strike": 659.0,
+        "type": "call",
+        "oi": 0,
+        "change": -1
+      }
+    ],
+    "drops": [
+      {
+        "expiration": "2026-11-30",
+        "strike": 675.0,
+        "type": "put",
+        "oi": 0,
+        "change": -75880
+      },
+      {
+        "expiration": "2026-11-30",
+        "strike": 806.0,
+        "type": "call",
+        "oi": 0,
+        "change": -21500
+      },
+      {
+        "expiration": "2026-11-30",
+        "strike": 727.0,
+        "type": "put",
+        "oi": 0,
+        "change": -20989
+      }
+    ]
+  }
+}

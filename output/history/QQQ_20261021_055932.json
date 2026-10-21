@@ -1,0 +1,143 @@
+{
+  "ticker": "QQQ",
+  "spot": 717.63,
+  "derived": false,
+  "derived_from": null,
+  "net_gex": 994.971978045724,
+  "call_gex": 994.971978045724,
+  "put_gex": 0.0,
+  "regime": "positive gamma",
+  "regime_description": "Dealer hedging tends to offset price moves, a condition historically associated with lower realized volatility.",
+  "call_wall": 613.0,
+  "put_wall": null,
+  "call_walls": [
+    613.0
+  ],
+  "put_walls": [],
+  "call_wall_expiries": [
+    {
+      "strike": 613.0,
+      "expiries": [
+        {
+          "expiration": "2026-10-30",
+          "pct": 100.0
+        }
+      ]
+    }
+  ],
+  "put_wall_expiries": [],
+  "abs_gamma_strike": 613.0,
+  "zero_gamma": null,
+  "net_dex": 63367.503442438996,
+  "net_vanna": -167.56077798756965,
+  "net_charm": 774.0232269372461,
+  "expected_move": null,
+  "put_call_oi_ratio": 0.0,
+  "total_call_oi": 3,
+  "total_put_oi": 0,
+  "call_wall_oi": 1,
+  "oi_at": {
+    "call": {
+      "613": 1
+    },
+    "put": {}
+  },
+  "oi_expiries": {
+    "call_wall": {
+      "strike": 613.0,
+      "type": "call",
+      "oi": 1,
+      "expiries": [
+        {
+          "expiration": "2026-10-30",
+          "oi": 1,
+          "pct": 100.0
+        }
+      ]
+    },
+    "put_wall": null,
+    "max_call_oi": {
+      "strike": 613.0,
+      "type": "call",
+      "oi": 1,
+      "expiries": [
+        {
+          "expiration": "2026-10-30",
+          "oi": 1,
+          "pct": 100.0
+        }
+      ]
+    },
+    "max_put_oi": null
+  },
+  "max_call_oi_strike": 613.0,
+  "max_call_oi": 1,
+  "max_put_oi_strike": null,
+  "max_put_oi": null,
+  "put_wall_oi": null,
+  "skew_25d": null,
+  "expiry_concentration": {
+    "pct_abs_gex": {
+      "0dte": 0.0,
+      "this_week": 0.0,
+      "this_month": 100.0,
+      "beyond": 0.0
+    },
+    "next_monthly_expiry": "2026-11-20",
+    "net_gex_after_monthly": 0.0,
+    "pct_abs_gex_after_monthly": 0.0
+  },
+  "volume_vs_oi": [],
+  "contracts": 1,
+  "expirations": 1,
+  "earnings_date": null,
+  "as_of": "2026-10-21T09:59:32+00:00",
+  "oi_changes": {
+    "adds": [
+      {
+        "expiration": "2026-10-30",
+        "strike": 604.0,
+        "type": "call",
+        "oi": 0,
+        "change": -1
+      },
+      {
+        "expiration": "2026-10-30",
+        "strike": 605.0,
+        "type": "call",
+        "oi": 0,
+        "change": -1
+      },
+      {
+        "expiration": "2026-10-30",
+        "strike": 609.0,
+        "type": "call",
+        "oi": 0,
+        "change": -1
+      }
+    ],
+    "drops": [
+      {
+        "expiration": "2026-10-30",
+        "strike": 700.0,
+        "type": "put",
+        "oi": 0,
+        "change": -89790
+      },
+      {
+        "expiration": "2026-10-30",
+        "strike": 690.0,
+        "type": "put",
+        "oi": 0,
+        "change": -69465
+      },
+      {
+        "expiration": "2026-10-30",
+        "strike": 675.0,
+        "type": "put",
+        "oi": 0,
+        "change": -54744
+      }
+    ]
+  }
+}

@@ -1,0 +1,1 @@
+SYM=QQQ;ASOF=2026-10-21 05:59 ET;CW=613;AG=613;OC=613;REG=positive gamma;SRC=chain

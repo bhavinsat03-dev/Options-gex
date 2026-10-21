@@ -1,0 +1,10 @@
+ticker,spot,net_gex,regime,call_wall,put_wall,abs_gamma_strike,zero_gamma,call_walls,put_walls,net_dex,net_vanna,net_charm,expected_move,em_low,em_high,put_call_oi_ratio,total_call_oi,total_put_oi,call_wall_oi,put_wall_oi,max_call_oi_strike,max_call_oi,max_put_oi_strike,max_put_oi,skew_25d,pct_0dte,pct_this_week,pct_this_month,pct_beyond,pct_after_monthly,source,status
+META,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,error: no contracts left after cleaning
+SPY,769.05,17466.24518352385,positive gamma,645.0,,645.0,,645 677 672,,1214381.8762291404,-5825.815321948553,3279.1143965583506,,,,0.0,33.0,0.0,16.0,,645.0,16.0,,,,0.0,0.0,0.0,100.0,100.0,chain,ok
+QQQ,717.63,994.971978045724,positive gamma,613.0,,613.0,,613,,63367.503442438996,-167.56077798756965,774.0232269372461,,,,0.0,3.0,0.0,1.0,,613.0,1.0,,,,0.0,0.0,100.0,0.0,0.0,chain,ok
+TSLA,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,error: no contracts left after cleaning
+BABA,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,error: no contracts left after cleaning
+MU,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,error: no contracts left after cleaning
+AMD,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,error: no contracts left after cleaning
+SPCX,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,error: no contracts left after cleaning
+IWM,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,error: no contracts left after cleaning

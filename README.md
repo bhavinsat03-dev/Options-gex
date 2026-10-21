@@ -247,7 +247,9 @@ src/gex/
 
 ### Brief sections
 
-`latest/brief.md` (and each scheduled post) has four sections: **1) Levels** (regime, flip, GEX, walls with OI and σ distance, earnings flag), **2) Dealer positioning and volatility**, **3) Key expiries and wall OI change**, and **4) Positioning changes** (largest OI adds and drops since the previous day plus today's high volume-vs-OI contracts). Section 4 is omitted with `--no-history`, since it needs the previous day's OI snapshot.
+`latest/brief.md` (and each scheduled post) has three sections: **1) Levels** (regime, flip, GEX, walls with OI and σ distance, earnings flag), **2) Dealer positioning and volatility**, and **3) Key expiries and wall OI change**.
+
+An optional **4) Positioning changes** section (largest OI adds and drops since the previous day plus today's high volume-vs-OI contracts) is added only with `--positioning`; scheduled runs leave it out. The underlying data (`oi_changes`, `volume_vs_oi`) is always saved in each `summary.json`. The section needs history, so it is skipped with `--no-history`.
 
 ### Weekly SPY/QQQ table
 

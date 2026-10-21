@@ -284,7 +284,8 @@ def key_expiry_line(s: dict, prev: dict | None, show_change: bool = True) -> str
 
 
 def render_brief(summaries: list[dict], as_of: str, window: str = "",
-                 previous: dict[str, dict] | None = None, title: str = "GEX update") -> str:
+                 previous: dict[str, dict] | None = None, title: str = "GEX update",
+                 positioning: bool = False) -> str:
     """Two-table markdown update: levels, then dealer positioning and volatility."""
     ok = [s for s in summaries if not str(s.get("status", "ok")).startswith("error")]
     lines = [f"## {title}: {as_of}", ""] + ([window, ""] if window else []) + ["### 1) Levels", "",
@@ -328,14 +329,14 @@ def render_brief(summaries: list[dict], as_of: str, window: str = "",
         prev = (previous or {}).get(s["ticker"])
         lines.append(f"- **{s['ticker']}**: {key_expiry_line(s, prev, previous is not None)}")
     # Positioning changes need the OI snapshots that only history-enabled runs keep.
-    if previous is not None:
+    if positioning and previous is not None:
         lines += ["", "### 4) Positioning changes", ""]
         for s in ok:
             if s.get("derived"):
                 continue
             lines.append(f"- **{s['ticker']}**: {positioning_line(s, (previous or {}).get(s['ticker']))}")
-        lines += ["", "σ = one expected move (ATM straddle). \"near flip\" = spot within 1σ of the zero-gamma level. "
-                  "Earnings shown only when inside the expiry window."]
+    lines += ["", "σ = one expected move (ATM straddle). \"near flip\" = spot within 1σ of the zero-gamma level. "
+              "Earnings shown only when inside the expiry window."]
     failed = [s for s in summaries if str(s.get("status", "")).startswith("error")]
     if failed:
         lines += ["", "Failed: " + ", ".join(f"{s['ticker']} ({s['status']})" for s in failed)]

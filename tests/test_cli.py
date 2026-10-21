@@ -171,8 +171,16 @@ def test_weekly_brief_without_history(tmp_path, now):
     assert "### 3) Key expiries\n" in brief and "vs " not in brief and "no prior day" not in brief
 
 
-def test_brief_positioning_section(tmp_path, now):
+def test_brief_omits_positioning_by_default(tmp_path, now):
     run(tmp_path, now, "QQQ", "--no-plots")
+    brief = (tmp_path / "out" / "latest" / "brief.md").read_text()
+    assert "Positioning changes" not in brief and "σ = one expected move" in brief
+    summary = json.loads((tmp_path / "out" / "QQQ" / STAMP / "summary.json").read_text())
+    assert "volume_vs_oi" in summary and "oi_changes" in summary
+
+
+def test_brief_positioning_section(tmp_path, now):
+    run(tmp_path, now, "QQQ", "--no-plots", "--positioning")
     brief = (tmp_path / "out" / "latest" / "brief.md").read_text()
     assert "### 4) Positioning changes" in brief and "OI change: no prior day" in brief
     assert (tmp_path / "out" / "history" / f"QQQ_{STAMP}_oi.csv.gz").exists()
@@ -187,7 +195,8 @@ def test_brief_positioning_section(tmp_path, now):
     def fetch_more(ticker, settings, when):
         return 100.0, more
 
-    cli.main(["QQQ", "-c", str(tmp_path / "config.toml"), "-o", str(tmp_path / "out"), "--no-plots"],
+    cli.main(["QQQ", "-c", str(tmp_path / "config.toml"), "-o", str(tmp_path / "out"), "--no-plots",
+              "--positioning"],
              fetch=fetch_more, fetch_earnings=fake_earnings, now=now + timedelta(days=1))
     brief = (tmp_path / "out" / "latest" / "brief.md").read_text()
     assert "OI adds vs Oct 16: 95P Oct 23 +4,000 (OI 5,000)" in brief

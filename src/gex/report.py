@@ -262,25 +262,35 @@ def positioning_line(s: dict, prev: dict | None) -> str:
     return " · ".join(parts)
 
 
-def key_expiry_line(s: dict, prev: dict | None, show_change: bool = True) -> str:
-    """'call wall 770: Nov 20 25%, Oct 23 23% (OI 57,001, +1,234 vs Oct 19) · put wall ...'"""
-    parts = []
-    for key, side, label in (("call_wall", "call", "call wall"), ("put_wall", "put", "put wall")):
+def _prev_day(prev: dict | None) -> str | None:
+    """'Oct 19': the previous run's date in New York time."""
+    return datetime.fromisoformat(prev["as_of"]).astimezone(NY).strftime("%b %d") if prev else None
+
+
+def _oi_change(now: int, before: int | None) -> str:
+    """'🔺 +8,988', '🔻 −493', '0', or 'no prior day'."""
+    if before is None:
+        return "no prior day"
+    d = now - before
+    if d == 0:
+        return "0"
+    return f"🔺 +{d:,}" if d > 0 else f"🔻 −{-d:,}"
+
+
+def key_expiry_cells(s: dict, prev: dict | None, show_change: bool = True) -> list[str]:
+    """Table cells for one ticker: per wall, its strike, OI, [OI change], top two expiries."""
+    cells = []
+    for key, side in (("call_wall", "call"), ("put_wall", "put")):
         e = (s.get("oi_expiries") or {}).get(key)
         if not e:
+            cells += ["-"] * (4 if show_change else 3)
             continue
-        exps = ", ".join(f"{_date(x['expiration'])} {x['pct']:.0f}%" for x in e["expiries"][:2])
-        before = _prior_oi(prev, side, e["strike"])
-        if not show_change:
-            parts.append(f"{label} **{e['strike']:g}**: {exps} (OI {e['oi']:,})")
-            continue
-        if before is None:
-            change = "no prior day"
-        else:
-            day = datetime.fromisoformat(prev["as_of"]).astimezone(NY)
-            change = f"{e['oi'] - before:+,} vs {day:%b %d}"
-        parts.append(f"{label} **{e['strike']:g}**: {exps} (OI {e['oi']:,}, {change})")
-    return " · ".join(parts) or "-"
+        exps = ", ".join(f"{_date(x['expiration'])} {x['pct']:.0f}%" for x in e["expiries"][:2]) or "-"
+        cells += [f"**{e['strike']:g}**", f"{e['oi']:,}"]
+        if show_change:
+            cells.append(_oi_change(e["oi"], _prior_oi(prev, side, e["strike"])))
+        cells.append(exps)
+    return cells
 
 
 # Colour cues for the brief. Markdown can't colour table cells, so each status
@@ -327,7 +337,7 @@ def pc_cell(ratio) -> str:
 
 
 LEGEND = ("🟢/🔴 positive/negative gamma · 🟡 near flip (spot within 1σ of zero gamma) · "
-          "🎯 wall within 0.5σ of spot · "
+          "🎯 wall within 0.5σ of spot · 🔺/🔻 wall OI up/down since the prior day · "
           "⬇️/⬆️ downside/upside priced richer (25d skew ≥ 2 pts) · 🧊/🌡️/🔥 IV <30% / 30–50% / ≥50% · "
           "🟥/🟩 P/C OI ≥1.5 put-heavy / ≤0.7 call-heavy. σ = one expected move (ATM straddle).")
 
@@ -372,10 +382,20 @@ def render_brief(summaries: list[dict], as_of: str, window: str = "",
             skew_cell(sk), iv_cell(sk), pc_cell(s.get("put_call_oi_ratio")),
         ]) + " |")
     # previous=None means history is off: list expiries without the OI change.
-    lines += ["", "### 3) Key expiries" + (" and wall OI change" if previous is not None else ""), ""]
+    show_change = previous is not None
+    days = sorted({d for d in (_prev_day((previous or {}).get(s["ticker"])) for s in ok) if d})
+    since = f" (vs {days[-1]})" if len(days) == 1 else ""
+    lines += ["", "### 3) Key expiries" + (f" and wall OI change{since}" if show_change else ""), ""]
+    if show_change:
+        lines += ["| Ticker | Call wall | Call OI | Call OI change | Call wall expiries "
+                  "| Put wall | Put OI | Put OI change | Put wall expiries |",
+                  "|---|---|---|---|---|---|---|---|---|"]
+    else:
+        lines += ["| Ticker | Call wall | Call OI | Call wall expiries | Put wall | Put OI | Put wall expiries |",
+                  "|---|---|---|---|---|---|---|"]
     for s in ok:
-        prev = (previous or {}).get(s["ticker"])
-        lines.append(f"- **{s['ticker']}**: {key_expiry_line(s, prev, previous is not None)}")
+        cells = key_expiry_cells(s, (previous or {}).get(s["ticker"]), show_change)
+        lines.append("| " + " | ".join([s["ticker"], *cells]) + " |")
     # Positioning changes need the OI snapshots that only history-enabled runs keep.
     if positioning and previous is not None:
         lines += ["", "### 4) Positioning changes", ""]

@@ -140,6 +140,7 @@ def test_brief_key_expiries_and_oi_change(tmp_path, now):
     run(tmp_path, now, "QQQ", "--no-plots")
     brief = (tmp_path / "out" / "latest" / "brief.md").read_text()
     assert "### 3) Key expiries and wall OI change" in brief and "no prior day" in brief
+    assert "| Ticker | Call wall | Call OI | Call OI change | Call wall expiries |" in brief
 
     more = make_raw()
     more.loc[(more["type"] == "call") & (more["strike"] == 110), "open_interest"] += 500
@@ -150,7 +151,8 @@ def test_brief_key_expiries_and_oi_change(tmp_path, now):
     cli.main(["QQQ", "-c", str(tmp_path / "config.toml"), "-o", str(tmp_path / "out"), "--no-plots"],
              fetch=fetch_more, fetch_earnings=fake_earnings, now=now + timedelta(days=1))
     brief = (tmp_path / "out" / "latest" / "brief.md").read_text()
-    assert "call wall **110**" in brief and "OI 11,000, +1,000 vs Oct 16" in brief
+    assert "### 3) Key expiries and wall OI change (vs Oct 16)" in brief
+    assert "| QQQ | **110** | 11,000 | 🔺 +1,000 | Oct 23 50%, Nov 20 50% |" in brief
 
 
 def test_oi_change_labels_previous_day_in_new_york_time(tmp_path):
@@ -161,7 +163,9 @@ def test_oi_change_labels_previous_day_in_new_york_time(tmp_path):
             "oi_at": {"call": {"110": 9000}, "put": {}}}
     s = {"oi_expiries": {"call_wall": {"strike": 110.0, "type": "call", "oi": 10000,
                                        "expiries": [{"expiration": "2026-11-20", "oi": 10000, "pct": 100.0}]}}}
-    assert "+1,000 vs Oct 19" in report.key_expiry_line(s, prev)
+    assert report._prev_day(prev) == "Oct 19"
+    assert report.key_expiry_cells(s, prev)[:3] == ["**110**", "10,000", "🔺 +1,000"]
+    assert report._oi_change(9000, 9500) == "🔻 −500" and report._oi_change(5, 5) == "0"
 
 
 def test_weekly_brief_without_history(tmp_path, now):

@@ -259,11 +259,12 @@ Markdown tables can't colour cells, so the brief puts an emoji beside each statu
 skew prices richer, 🧊/🌡️/🔥 IV bands and 🟥/🟩 put- or call-heavy P/C OI. A legend line
 under the tables repeats this.
 
-Runs with charts enabled also write `latest/heatmap.png`: the same tickers as one image
-with each cell shaded by value (blue for positive gamma or call-heavy, red for negative
-or put-heavy, darker blue for walls closer to spot and higher IV, a yellow outline for
-near-flip). Its **γ balance** column is net GEX ÷ (call GEX + |put GEX|),
-so tickers of very different size compare on one scale. Scheduled posts show the
+Runs with charts enabled also write `latest/heatmap.png`: table 1 (Levels) as one
+image, same columns in the same order, with each cell shaded by value. Regime and
+vs-flip are blue above the flip and red below, with a yellow outline when near flip.
+Net GEX is shaded by net ÷ (call GEX + |put GEX|), and call and put GEX by each side's
+share of that total, so tickers of very different size compare on one scale. Call
+walls are blue and put walls red, darker the closer they are to spot. Scheduled posts show the
 heatmap above the tables; it is committed to the `gex-data` branch (about 150 KB a run)
 and linked at that commit, so older posts keep their own image.
 

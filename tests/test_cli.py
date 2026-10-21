@@ -206,16 +206,16 @@ def test_brief_positioning_section(tmp_path, now):
     assert summary["oi_changes"]["adds"][0]["change"] == 4000
 
 
-def test_brief_earnings_flag_and_sigma(tmp_path, now):
+def test_brief_sigma_and_no_earnings_column(tmp_path, now):
     run(tmp_path, now, "QQQ", "NDX", "--no-plots")
     brief = (tmp_path / "out" / "latest" / "brief.md").read_text()
-    assert "| Earnings |" in brief
+    assert "Earnings" not in brief and "Oct 29" not in brief
     qqq = next(line for line in brief.splitlines() if line.startswith("| QQQ |"))
-    assert qqq.rstrip("| ").endswith("Oct 29")
     assert "σ)" in qqq                                # vs-flip and wall distances in expected-move units
     ndx = next(line for line in brief.splitlines() if line.startswith("| NDX"))
-    assert ndx.rstrip("| ").endswith("-")             # derived ticker: no earnings flag
     assert "4510 (+" in ndx                            # σ still shown without OI for derived levels
+    summary = json.loads((tmp_path / "out" / "QQQ" / STAMP / "summary.json").read_text())
+    assert summary["earnings_date"] == "2026-10-29"   # still recorded, just not shown in the post
 
 
 def test_earnings_outside_window_not_flagged(tmp_path, now):
@@ -233,7 +233,6 @@ def test_brief_colour_cues(tmp_path, now):
     qqq = next(line for line in brief.splitlines() if line.startswith("| QQQ |"))
     assert ("🟢" in qqq) != ("🔴" in qqq)              # exactly one regime colour
     assert "🟩 +$" in qqq and "🟥 −$" in qqq           # call and put GEX squares
-    assert "📅 Oct 29" in qqq                          # earnings more than 3 days out
     assert "🟢/🔴 positive/negative gamma" in brief    # legend
     ndx = next(line for line in brief.splitlines() if line.startswith("| NDX"))
     assert "| - | - | - |" in ndx                      # derived ticker: no dollar figures, no stray emoji

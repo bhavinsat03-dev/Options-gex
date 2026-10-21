@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -306,16 +306,6 @@ def _wall_cell(s: dict, strike, oi) -> str:
     return near + _strike_oi_sigma(s, strike, oi)
 
 
-def earnings_cell(earnings: str | None, today: date | None) -> str:
-    """'⚠️ **Oct 21**' within three days, '📅 Nov 03' later, '-' when none."""
-    if not earnings:
-        return "-"
-    when = date.fromisoformat(earnings)
-    if today is not None and 0 <= (when - today).days <= 3:
-        return f"⚠️ **{'today' if when == today else _date(earnings)}**"
-    return f"📅 {_date(earnings)}"
-
-
 def skew_cell(skew: dict | None) -> str:
     if not skew:
         return "-"
@@ -337,7 +327,7 @@ def pc_cell(ratio) -> str:
 
 
 LEGEND = ("🟢/🔴 positive/negative gamma · 🟡 near flip (spot within 1σ of zero gamma) · "
-          "🎯 wall within 0.5σ of spot · ⚠️ earnings within 3 days · "
+          "🎯 wall within 0.5σ of spot · "
           "⬇️/⬆️ downside/upside priced richer (25d skew ≥ 2 pts) · 🧊/🌡️/🔥 IV <30% / 30–50% / ≥50% · "
           "🟥/🟩 P/C OI ≥1.5 put-heavy / ≤0.7 call-heavy. σ = one expected move (ATM straddle).")
 
@@ -347,14 +337,10 @@ def render_brief(summaries: list[dict], as_of: str, window: str = "",
                  positioning: bool = False) -> str:
     """Two-table markdown update: levels, then dealer positioning and volatility."""
     ok = [s for s in summaries if not str(s.get("status", "ok")).startswith("error")]
-    try:
-        today = date.fromisoformat(as_of[:10])
-    except ValueError:
-        today = None
     lines = [f"## {title}: {as_of}", ""] + ([window, ""] if window else []) + ["### 1) Levels", "",
              "| Ticker | Spot | Regime | Vs flip | Zero gamma | Net GEX | Call GEX | Put GEX "
-             "| Call wall (OI; σ) | Put wall (OI; σ) | Next call walls | Next put walls | Earnings |",
-             "|---|---|---|---|---|---|---|---|---|---|---|---|---|"]
+             "| Call wall (OI; σ) | Put wall (OI; σ) | Next call walls | Next put walls |",
+             "|---|---|---|---|---|---|---|---|---|---|---|---|"]
     for s in ok:
         zg = s.get("zero_gamma")
         vs_flip = f"{(s['spot'] / zg - 1) * 100:+.2f}%" if zg else "-"
@@ -372,7 +358,6 @@ def render_brief(summaries: list[dict], as_of: str, window: str = "",
             _wall_cell(s, s.get("put_wall"), s.get("put_wall_oi")),
             " / ".join(f"{k:g}" for k in s.get("call_walls", [])[1:]) or "-",
             " / ".join(f"{k:g}" for k in s.get("put_walls", [])[1:]) or "-",
-            earnings_cell(s.get("earnings_date"), today),
         ]) + " |")
     lines += ["", "### 2) Dealer positioning and volatility", "",
               "| Ticker | Net GEX (per 1%) | Net DEX | Vanna (per vol pt) | Charm (per day) "

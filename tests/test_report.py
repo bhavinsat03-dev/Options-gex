@@ -1,14 +1,4 @@
-from datetime import date
-
 from gex import report
-
-
-def test_earnings_cell_flags_next_three_days():
-    today = date(2026, 10, 20)
-    assert report.earnings_cell("2026-10-20", today) == "⚠️ **today**"
-    assert report.earnings_cell("2026-10-23", today) == "⚠️ **Oct 23**"
-    assert report.earnings_cell("2026-10-24", today) == "📅 Oct 24"
-    assert report.earnings_cell(None, today) == "-"
 
 
 def test_vol_and_ratio_cells():

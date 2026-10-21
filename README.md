@@ -216,7 +216,7 @@ The tool pauses between expiration requests and between tickers. Failed requests
 | **σ (sigma) distance** | Distance from spot to a level measured in expected moves (one σ = the nearest-expiry ATM straddle). It makes tickers comparable: 1% is far for SPY but nothing for TSLA. |
 | **OI adds / drops** | The contracts (strike, type, expiry) whose open interest rose or fell the most since the previous day. Open interest updates overnight, so this is yesterday's new positioning. Expired contracts are excluded. |
 | **High volume vs OI** | Contracts with at least two days to expiry whose volume today is at least 500 and at least half their open interest (0DTE/1DTE contracts are skipped; their volume is day trading). Volume is the only intraday sign of positioning that will show up in tomorrow's OI. |
-| **Earnings** | The next earnings date, shown only when it falls inside the expiry window. Around earnings, open interest and implied volatility are dominated by the event, so walls and the expected move mean something different. |
+| **Earnings** | The next earnings date, recorded in `summary.json` and shown on the heatmap only when it falls inside the expiry window (not in the post tables). Around earnings, open interest and implied volatility are dominated by the event, so walls and the expected move mean something different. |
 
 ## Caveats
 
@@ -247,7 +247,7 @@ src/gex/
 
 ### Brief sections
 
-`latest/brief.md` (and each scheduled post) has three sections: **1) Levels** (regime, flip, GEX, walls with OI and σ distance, earnings flag), **2) Dealer positioning and volatility**, and **3) Key expiries and wall OI change**.
+`latest/brief.md` (and each scheduled post) has three sections: **1) Levels** (regime, flip, GEX, walls with OI and σ distance), **2) Dealer positioning and volatility**, and **3) Key expiries and wall OI change**.
 
 An optional **4) Positioning changes** section (largest OI adds and drops since the previous day plus today's high volume-vs-OI contracts) is added only with `--positioning`; scheduled runs leave it out. The underlying data (`oi_changes`, `volume_vs_oi`) is always saved in each `summary.json`. The section needs history, so it is skipped with `--no-history`.
 
@@ -255,7 +255,7 @@ An optional **4) Positioning changes** section (largest OI adds and drops since 
 
 Markdown tables can't colour cells, so the brief puts an emoji beside each status:
 🟢/🔴 positive or negative gamma, 🟡 near flip, 🟩/🟥 call and put GEX, 🎯 a wall within
-0.5σ of spot, ⚠️ earnings within three days (📅 later), ⬇️/⬆️ which side the 25-delta
+0.5σ of spot, ⬇️/⬆️ which side the 25-delta
 skew prices richer, 🧊/🌡️/🔥 IV bands and 🟥/🟩 put- or call-heavy P/C OI. A legend line
 under the tables repeats this.
 

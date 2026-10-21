@@ -1,4 +1,4 @@
-## Weekly expiries (next 7 days): SPY & QQQ: 2026-10-20 20:50 ET
+## Weekly expiries (next 7 days): SPY & QQQ: 2026-10-20 20:53 ET
 
 Options expiring Oct 20 to Oct 27 (rolling 7 days).
 
@@ -13,8 +13,8 @@ Options expiring Oct 20 to Oct 27 (rolling 7 days).
 
 | Ticker | Net GEX (per 1%) | Net DEX | Vanna (per vol pt) | Charm (per day) | Expected move | 25d skew | IV | P/C OI |
 |---|---|---|---|---|---|---|---|---|
-| SPY | 🔴 −$2.36B | +$14.62B | +$542.9M | −$1.73B | ±0.6% | ➖ +1.0 | 🧊 11% | 🟥 1.77 |
-| QQQ | 🔴 −$2.23B | +$13.13B | +$206.6M | −$1.23B | ±1.0% | ➖ +1.9 | 🧊 20% | 🟥 1.52 |
+| SPY | 🔴 −$2.36B | +$14.62B | +$542.4M | −$1.73B | ±0.6% | ➖ +1.0 | 🧊 11% | 🟥 1.77 |
+| QQQ | 🔴 −$2.23B | +$13.12B | +$206.4M | −$1.23B | ±1.0% | ➖ +1.9 | 🧊 20% | 🟥 1.52 |
 
 ### 3) Key expiries
 

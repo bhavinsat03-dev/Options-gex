@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import date, datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -283,11 +283,74 @@ def key_expiry_line(s: dict, prev: dict | None, show_change: bool = True) -> str
     return " · ".join(parts) or "-"
 
 
+# Colour cues for the brief. Markdown can't colour table cells, so each status
+# gets an emoji next to the number; the numbers themselves stay plain text.
+POS, NEG, NEAR = "🟢", "🔴", "🟡"
+CALL_SQ, PUT_SQ, NEUTRAL_SQ = "🟩", "🟥", "⚪"
+WALL_NEAR_SIGMA = 0.5
+
+
+def _dot(x) -> str:
+    return "" if x is None else (POS if x >= 0 else NEG) + " "
+
+
+def regime_cell(s: dict) -> str:
+    """'🔴🟡 negative, near flip'"""
+    label = regime_label(s)
+    return (POS if label.startswith("positive") else NEG) + (NEAR if "near flip" in label else "") + " " + label
+
+
+def _wall_cell(s: dict, strike, oi) -> str:
+    sigma = _sigma(s, strike)
+    near = "🎯 " if sigma is not None and abs(sigma) < WALL_NEAR_SIGMA else ""
+    return near + _strike_oi_sigma(s, strike, oi)
+
+
+def earnings_cell(earnings: str | None, today: date | None) -> str:
+    """'⚠️ **Oct 21**' within three days, '📅 Nov 03' later, '-' when none."""
+    if not earnings:
+        return "-"
+    when = date.fromisoformat(earnings)
+    if today is not None and 0 <= (when - today).days <= 3:
+        return f"⚠️ **{'today' if when == today else _date(earnings)}**"
+    return f"📅 {_date(earnings)}"
+
+
+def skew_cell(skew: dict | None) -> str:
+    if not skew:
+        return "-"
+    arrow = "⬇️" if skew["skew"] >= 2 else "⬆️" if skew["skew"] <= -2 else "➖"
+    return f"{arrow} {skew['skew']:+.1f}"
+
+
+def iv_cell(skew: dict | None) -> str:
+    if not skew:
+        return "-"
+    iv = skew["call_iv"] * 100
+    return ("🔥" if iv >= 50 else "🌡️" if iv >= 30 else "🧊") + f" {iv:.0f}%"
+
+
+def pc_cell(ratio) -> str:
+    if ratio is None:
+        return "-"
+    return (PUT_SQ if ratio >= 1.5 else CALL_SQ if ratio <= 0.7 else NEUTRAL_SQ) + f" {ratio:.2f}"
+
+
+LEGEND = ("🟢/🔴 positive/negative gamma · 🟡 near flip (spot within 1σ of zero gamma) · "
+          "🎯 wall within 0.5σ of spot · ⚠️ earnings within 3 days · "
+          "⬇️/⬆️ downside/upside priced richer (25d skew ≥ 2 pts) · 🧊/🌡️/🔥 IV <30% / 30–50% / ≥50% · "
+          "🟥/🟩 P/C OI ≥1.5 put-heavy / ≤0.7 call-heavy. σ = one expected move (ATM straddle).")
+
+
 def render_brief(summaries: list[dict], as_of: str, window: str = "",
                  previous: dict[str, dict] | None = None, title: str = "GEX update",
                  positioning: bool = False) -> str:
     """Two-table markdown update: levels, then dealer positioning and volatility."""
     ok = [s for s in summaries if not str(s.get("status", "ok")).startswith("error")]
+    try:
+        today = date.fromisoformat(as_of[:10])
+    except ValueError:
+        today = None
     lines = [f"## {title}: {as_of}", ""] + ([window, ""] if window else []) + ["### 1) Levels", "",
              "| Ticker | Spot | Regime | Vs flip | Zero gamma | Net GEX | Call GEX | Put GEX "
              "| Call wall (OI; σ) | Put wall (OI; σ) | Next call walls | Next put walls | Earnings |",
@@ -301,13 +364,15 @@ def render_brief(summaries: list[dict], as_of: str, window: str = "",
             vs_flip += f" ({-sigma:+.1f}σ)"
         lines.append("| " + " | ".join([
             s["ticker"] + (f" (from {s['derived_from']})" if s.get("derived") else ""),
-            num(s["spot"]), regime_label(s), vs_flip, num(zg),
-            _flow(s.get("net_gex")), _flow(s.get("call_gex")), _flow(s.get("put_gex")),
-            _strike_oi_sigma(s, s.get("call_wall"), s.get("call_wall_oi")),
-            _strike_oi_sigma(s, s.get("put_wall"), s.get("put_wall_oi")),
+            num(s["spot"]), regime_cell(s), vs_flip, num(zg),
+            _dot(s.get("net_gex")) + _flow(s.get("net_gex")),
+            (CALL_SQ + " " if s.get("call_gex") is not None else "") + _flow(s.get("call_gex")),
+            (PUT_SQ + " " if s.get("put_gex") is not None else "") + _flow(s.get("put_gex")),
+            _wall_cell(s, s.get("call_wall"), s.get("call_wall_oi")),
+            _wall_cell(s, s.get("put_wall"), s.get("put_wall_oi")),
             " / ".join(f"{k:g}" for k in s.get("call_walls", [])[1:]) or "-",
             " / ".join(f"{k:g}" for k in s.get("put_walls", [])[1:]) or "-",
-            _date(s["earnings_date"]) if s.get("earnings_date") else "-",
+            earnings_cell(s.get("earnings_date"), today),
         ]) + " |")
     lines += ["", "### 2) Dealer positioning and volatility", "",
               "| Ticker | Net GEX (per 1%) | Net DEX | Vanna (per vol pt) | Charm (per day) "
@@ -316,12 +381,10 @@ def render_brief(summaries: list[dict], as_of: str, window: str = "",
     for s in ok:
         em, sk = s.get("expected_move"), s.get("skew_25d")
         lines.append("| " + " | ".join([
-            s["ticker"], _flow(s.get("net_gex")), _flow(s.get("net_dex")),
+            s["ticker"], _dot(s.get("net_gex")) + _flow(s.get("net_gex")), _flow(s.get("net_dex")),
             _flow(s.get("net_vanna")), _flow(s.get("net_charm")),
             f"±{em['move_pct']:.1f}%" if em else "-",
-            f"{sk['skew']:+.1f}" if sk else "-",
-            f"{sk['call_iv'] * 100:.0f}%" if sk else "-",
-            num(s.get("put_call_oi_ratio")),
+            skew_cell(sk), iv_cell(sk), pc_cell(s.get("put_call_oi_ratio")),
         ]) + " |")
     # previous=None means history is off: list expiries without the OI change.
     lines += ["", "### 3) Key expiries" + (" and wall OI change" if previous is not None else ""), ""]
@@ -335,8 +398,7 @@ def render_brief(summaries: list[dict], as_of: str, window: str = "",
             if s.get("derived"):
                 continue
             lines.append(f"- **{s['ticker']}**: {positioning_line(s, (previous or {}).get(s['ticker']))}")
-    lines += ["", "σ = one expected move (ATM straddle). \"near flip\" = spot within 1σ of the zero-gamma level. "
-              "Earnings shown only when inside the expiry window."]
+    lines += ["", LEGEND]
     failed = [s for s in summaries if str(s.get("status", "")).startswith("error")]
     if failed:
         lines += ["", "Failed: " + ", ".join(f"{s['ticker']} ({s['status']})" for s in failed)]

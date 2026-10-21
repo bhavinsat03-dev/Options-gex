@@ -83,6 +83,8 @@ jobs:
             git -C data rm -rfq .
             printf '*.png\ncontracts.csv\n' > data/.gitignore
           fi
+          # Charts stay out of git, except the summary heatmap that each post embeds.
+          grep -qxF '!heatmap.png' data/.gitignore || echo '!heatmap.png' >> data/.gitignore
 
       - name: Run one-off window
         if: steps.gate.outputs.run == 'true' && inputs.max_dte != ''
@@ -124,20 +126,6 @@ jobs:
           [ -n "${{ inputs.max_dte }}" ] && brief=data/adhoc/latest/brief.md
           cat "$brief" >> "$GITHUB_STEP_SUMMARY" 2>/dev/null || echo "No brief produced" >> "$GITHUB_STEP_SUMMARY"
 
-      # Scheduled runs (and manual runs with "notify") post the two-table brief as a
-      # comment on the "GEX updates" issue, which sends a GitHub notification.
-      - name: Post update
-        if: steps.gate.outputs.run == 'true' && inputs.max_dte == '' && (github.event_name == 'schedule' || inputs.notify || inputs.slot != '') && hashFiles('data/output/latest/brief.md') != ''
-        env:
-          GH_TOKEN: ${{ github.token }}
-          TITLE: GEX updates
-        run: |
-          num=$(gh issue list --state open --search "\"$TITLE\" in:title" --json number,title -q ".[] | select(.title == \"$TITLE\") | .number" | head -1)
-          if [ -z "$num" ]; then
-            num=$(gh issue create --title "$TITLE" --body "Each scheduled GEX run posts its levels and dealer-positioning tables here. Subscribe to get notified." | grep -o '[0-9]*$')
-          fi
-          gh issue comment "$num" --body-file data/output/latest/brief.md
-
       - name: Upload charts
         if: steps.gate.outputs.run == 'true' && always()
         uses: actions/upload-artifact@v4
@@ -148,6 +136,7 @@ jobs:
           if-no-files-found: ignore
 
       - name: Commit results
+        id: commit
         if: steps.gate.outputs.run == 'true' && always()
         run: |
           cd data
@@ -156,5 +145,32 @@ jobs:
           git add -A
           if git diff --cached --quiet; then echo "nothing to commit"; exit 0; fi
           git commit -qm "GEX run $(TZ=America/New_York date '+%Y-%m-%d %H:%M ET')"
-          for i in 1 2 3; do git push origin "HEAD:$DATA_BRANCH" && exit 0; sleep $((i * 5)); done
+          for i in 1 2 3; do
+            if git push origin "HEAD:$DATA_BRANCH"; then echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"; exit 0; fi
+            sleep $((i * 5))
+          done
           exit 1
+
+      # Scheduled runs (and manual runs with "notify") post the heatmap and the brief as a
+      # comment on the "GEX updates" issue, which sends a GitHub notification. It runs
+      # after the commit so the heatmap has a permanent URL on the data branch.
+      - name: Post update
+        # A failed commit still posts, just without the image.
+        if: (success() || steps.commit.outcome == 'failure') && steps.gate.outputs.run == 'true' && inputs.max_dte == '' && (github.event_name == 'schedule' || inputs.notify || inputs.slot != '') && hashFiles('data/output/latest/brief.md') != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TITLE: GEX updates
+          DATA_SHA: ${{ steps.commit.outputs.sha }}
+        run: |
+          num=$(gh issue list --state open --search "\"$TITLE\" in:title" --json number,title -q ".[] | select(.title == \"$TITLE\") | .number" | head -1)
+          if [ -z "$num" ]; then
+            num=$(gh issue create --title "$TITLE" --body "Each scheduled GEX run posts its levels and dealer-positioning tables here. Subscribe to get notified." | grep -o '[0-9]*$')
+          fi
+          body=data/output/latest/brief.md
+          # The heatmap is linked at the data-branch commit that holds it, so each
+          # post keeps showing its own image after later runs overwrite the file.
+          if [ -n "$DATA_SHA" ] && [ -f data/output/latest/heatmap.png ]; then
+            { echo "![GEX heatmap](https://raw.githubusercontent.com/$GITHUB_REPOSITORY/$DATA_SHA/output/latest/heatmap.png)"; echo; cat "$body"; } > /tmp/post.md
+            body=/tmp/post.md
+          fi
+          gh issue comment "$num" --body-file "$body"

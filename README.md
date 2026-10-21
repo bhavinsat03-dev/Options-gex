@@ -251,6 +251,22 @@ src/gex/
 
 An optional **4) Positioning changes** section (largest OI adds and drops since the previous day plus today's high volume-vs-OI contracts) is added only with `--positioning`; scheduled runs leave it out. The underlying data (`oi_changes`, `volume_vs_oi`) is always saved in each `summary.json`. The section needs history, so it is skipped with `--no-history`.
 
+### Colour cues and heatmap
+
+Markdown tables can't colour cells, so the brief puts an emoji beside each status:
+🟢/🔴 positive or negative gamma, 🟡 near flip, 🟩/🟥 call and put GEX, 🎯 a wall within
+0.5σ of spot, ⚠️ earnings within three days (📅 later), ⬇️/⬆️ which side the 25-delta
+skew prices richer, 🧊/🌡️/🔥 IV bands and 🟥/🟩 put- or call-heavy P/C OI. A legend line
+under the tables repeats this.
+
+Runs with charts enabled also write `latest/heatmap.png`: the same tickers as one image
+with each cell shaded by value (blue for positive gamma or call-heavy, red for negative
+or put-heavy, darker blue for walls closer to spot and higher IV, yellow for near-flip
+and earnings within three days). Its **γ balance** column is net GEX ÷ (call GEX + |put GEX|),
+so tickers of very different size compare on one scale. Scheduled posts show the
+heatmap above the tables; it is committed to the `gex-data` branch (about 150 KB a run)
+and linked at that commit, so older posts keep their own image.
+
 ### Weekly SPY/QQQ table
 
 Each scheduled post also includes a second set of tables for SPY and QQQ computed

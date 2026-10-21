@@ -263,6 +263,13 @@ def main(argv=None, fetch=data.fetch_chain, fetch_spot=data.fetch_spot_only,
         for r in results if not str(r.get("status", "")).startswith("error")
     } if settings.history else None
     (latest / "brief.md").write_text(report.render_brief(results, as_of, window, previous, args.title, args.positioning))
+    if settings.plots:
+        try:
+            from .heatmap import render as render_heatmap
+
+            render_heatmap(results, latest / "heatmap.png", as_of, title=f"{args.title} · {settings.max_dte}-day expiries")
+        except Exception as exc:  # the image is a bonus; never fail the run over it
+            log.error("heatmap failed: %s", exc)
 
     print(format_table(table))
     if table["source"].astype(str).str.startswith("derived").any():

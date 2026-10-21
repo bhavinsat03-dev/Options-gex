@@ -225,3 +225,25 @@ def test_earnings_outside_window_not_flagged(tmp_path, now):
              fetch=fake_fetch, fetch_earnings=lambda t, s, d: "2027-03-01", now=now)
     summary = json.loads((tmp_path / "out" / "QQQ" / STAMP / "summary.json").read_text())
     assert summary["earnings_date"] is None
+
+
+def test_brief_colour_cues(tmp_path, now):
+    run(tmp_path, now, "QQQ", "NDX", "--no-plots")
+    brief = (tmp_path / "out" / "latest" / "brief.md").read_text()
+    qqq = next(line for line in brief.splitlines() if line.startswith("| QQQ |"))
+    assert ("🟢" in qqq) != ("🔴" in qqq)              # exactly one regime colour
+    assert "🟩 +$" in qqq and "🟥 −$" in qqq           # call and put GEX squares
+    assert "📅 Oct 29" in qqq                          # earnings more than 3 days out
+    assert "🟢/🔴 positive/negative gamma" in brief    # legend
+    ndx = next(line for line in brief.splitlines() if line.startswith("| NDX"))
+    assert "| - | - | - |" in ndx                      # derived ticker: no dollar figures, no stray emoji
+
+
+def test_heatmap_written_with_plots(tmp_path, now):
+    run(tmp_path, now, "QQQ")
+    assert (tmp_path / "out" / "latest" / "heatmap.png").stat().st_size > 10_000
+
+
+def test_heatmap_skipped_without_plots(tmp_path, now):
+    run(tmp_path, now, "QQQ", "--no-plots")
+    assert not (tmp_path / "out" / "latest" / "heatmap.png").exists()

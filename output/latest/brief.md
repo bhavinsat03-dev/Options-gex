@@ -1,72 +1,86 @@
-## GEX update: 2026-10-20 18:42 ET
+## GEX update: 2026-10-20 20:28 ET
 
 Options expiring Oct 20 to Dec 04 (rolling 45 days).
 
 ### 1) Levels
 
-| Ticker | Spot | Regime | Vs flip | Zero gamma | Net GEX | Call GEX | Put GEX | Call wall (OI) | Put wall (OI) | Next call walls | Next put walls |
-|---|---|---|---|---|---|---|---|---|---|---|---|
-| META | 694.25 | positive | +2.47% | 677.52 | +$63.5M | +$511.3M | −$447.8M | 700 (24,884) | 750 (16,285) | 800 / 750 | 680 / 650 |
-| SPY | 769.05 | negative | -0.75% | 774.88 | −$8.36B | +$11.00B | −$19.36B | 770 (53,570) | 760 (207,043) | 780 / 775 | 769 / 765 |
-| QQQ | 717.63 | negative | -2.09% | 732.95 | −$6.51B | +$5.12B | −$11.63B | 720 (49,768) | 720 (127,139) | 730 / 740 | 710 / 700 |
-| TSLA | 373.71 | positive | +6.81% | 349.88 | +$213.2M | +$468.0M | −$254.8M | 400 (45,627) | 350 (23,041) | 380 / 385 | 370 / 360 |
-| BABA | 108.61 | positive | +0.82% | 107.73 | +$7.2M | +$45.4M | −$38.2M | 110 (14,073) | 110 (12,805) | 120 / 115 | 105 / 107 |
-| MU | 896.07 | negative | -2.13% | 915.53 | −$186.4M | +$514.6M | −$701.0M | 900 (10,609) | 900 (18,567) | 910 / 950 | 850 / 880 |
-| AMD | 534.74 | negative | -2.48% | 548.33 | −$98.1M | +$264.8M | −$362.9M | 550 (9,809) | 530 (9,514) | 620 / 540 | 550 / 540 |
-| SPCX | 147.79 | negative | -1.29% | 149.72 | −$15.5M | +$150.4M | −$165.9M | 155 (37,588) | 140 (49,948) | 150 / 160 | 145 / 150 |
-| IWM | 275.78 | negative | -2.11% | 281.73 | −$1.20B | +$1.87B | −$3.07B | 275 (40,875) | 270 (201,025) | 277 / 280 | 275 / 265 |
+| Ticker | Spot | Regime | Vs flip | Zero gamma | Net GEX | Call GEX | Put GEX | Call wall (OI; σ) | Put wall (OI; σ) | Next call walls | Next put walls | Earnings |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| META | 694.25 | positive, near flip | +3.05% (+0.5σ) | 673.71 | +$74.2M | +$510.6M | −$436.4M | 700 (24,884; +0.2σ) | 750 (16,285; +1.5σ) | 800 / 750 | 680 / 650 | Oct 21 |
+| SPY | 769.05 | negative | -0.80% (-1.4σ) | 775.27 | −$8.29B | +$10.95B | −$19.24B | 780 (84,138; +2.5σ) | 760 (207,043; -2.1σ) | 770 / 775 | 765 / 769 | - |
+| QQQ | 717.63 | negative | -2.19% (-2.2σ) | 733.72 | −$6.19B | +$5.13B | −$11.32B | 720 (49,768; +0.3σ) | 720 (127,139; +0.3σ) | 730 / 735 | 700 / 710 | - |
+| TSLA | 373.71 | positive | +7.36% (+1.1σ) | 348.08 | +$201.7M | +$451.2M | −$249.6M | 400 (45,627; +1.1σ) | 350 (23,041; -1.0σ) | 380 / 385 | 360 / 370 | Oct 21 |
+| BABA | 108.61 | positive, near flip | +0.99% (+0.3σ) | 107.55 | +$7.5M | +$45.3M | −$37.8M | 120 (30,117; +3.5σ) | 110 (12,805; +0.4σ) | 110 / 115 | 105 / 104 | Nov 24 |
+| MU | 896.07 | negative, near flip | -2.09% (-0.8σ) | 915.19 | −$166.0M | +$524.7M | −$690.6M | 900 (10,609; +0.2σ) | 900 (18,567; +0.2σ) | 910 / 950 | 850 / 880 | - |
+| AMD | 534.74 | negative, near flip | -2.54% (-0.9σ) | 548.68 | −$90.4M | +$264.6M | −$355.0M | 550 (9,809; +1.0σ) | 550 (12,067; +1.0σ) | 620 / 600 | 530 / 540 | Nov 03 |
+| SPCX | 147.79 | negative, near flip | -1.55% (-0.2σ) | 150.11 | −$14.8M | +$144.9M | −$159.7M | 155 (37,588; +0.7σ) | 140 (49,948; -0.7σ) | 150 / 160 | 150 / 145 | Oct 20 |
+| IWM | 275.78 | negative | -2.20% (-3.0σ) | 281.99 | −$1.27B | +$1.78B | −$3.05B | 275 (40,875; -0.4σ) | 270 (201,025; -2.8σ) | 277 / 280 | 265 / 275 | - |
 
 ### 2) Dealer positioning and volatility
 
 | Ticker | Net GEX (per 1%) | Net DEX | Vanna (per vol pt) | Charm (per day) | Expected move | 25d skew | IV | P/C OI |
 |---|---|---|---|---|---|---|---|---|
-| META | +$63.5M | +$13.51B | +$66.3M | −$162.5M | ±5.4% | +0.1 | 45% | 0.68 |
-| SPY | −$8.36B | +$70.71B | +$3.16B | −$2.33B | ±0.6% | +1.9 | 13% | 2.91 |
-| QQQ | −$6.51B | +$67.95B | +$1.28B | −$1.58B | ±1.0% | +3.5 | 20% | 1.62 |
-| TSLA | +$213.2M | +$8.13B | +$43.0M | −$217.0M | ±6.5% | -0.1 | 45% | 0.88 |
-| BABA | +$7.2M | +$699.8M | +$7.5M | −$18.7M | ±3.0% | -3.7 | 44% | 0.44 |
-| MU | −$186.4M | +$13.75B | +$52.8M | −$254.3M | ±2.6% | -0.2 | 51% | 1.09 |
-| AMD | −$98.1M | +$7.55B | +$30.1M | −$137.3M | ±2.8% | -0.1 | 59% | 1.01 |
-| SPCX | −$15.5M | +$4.25B | +$14.4M | −$154.5M | ±7.1% | -0.3 | 57% | 0.98 |
-| IWM | −$1.20B | +$17.29B | +$527.6M | −$390.1M | ±0.7% | +1.5 | 18% | 2.07 |
+| META | +$74.2M | +$13.65B | +$65.6M | −$192.5M | ±5.4% | +0.1 | 46% | 0.68 |
+| SPY | −$8.29B | +$72.82B | +$3.17B | −$2.97B | ±0.6% | +2.0 | 13% | 3.01 |
+| QQQ | −$6.19B | +$69.33B | +$1.26B | −$1.93B | ±1.0% | +3.6 | 20% | 1.66 |
+| TSLA | +$201.7M | +$8.31B | +$41.6M | −$236.9M | ±6.5% | +0.0 | 46% | 0.88 |
+| BABA | +$7.5M | +$715.0M | +$7.4M | −$20.8M | ±3.0% | -3.8 | 44% | 0.44 |
+| MU | −$166.0M | +$14.00B | +$53.3M | −$375.4M | ±2.6% | -0.2 | 51% | 1.09 |
+| AMD | −$90.4M | +$7.68B | +$30.0M | −$186.1M | ±2.8% | -0.1 | 60% | 1.01 |
+| SPCX | −$14.8M | +$4.36B | +$13.6M | −$177.1M | ±7.1% | -0.3 | 58% | 0.98 |
+| IWM | −$1.27B | +$17.64B | +$521.9M | −$451.3M | ±0.7% | +1.6 | 19% | 2.09 |
 
 ### 3) Key expiries and wall OI change
 
 - **META**: call wall **700**: Nov 20 86%, Oct 23 7% (OI 24,884, +1,648 vs Oct 19) · put wall **750**: Oct 23 77%, Nov 20 16% (OI 16,285, -48 vs Oct 19)
-- **SPY**: call wall **770**: Nov 20 27%, Oct 23 23% (OI 53,570, -3,431 vs Oct 19) · put wall **760**: Oct 30 63%, Nov 20 15% (OI 207,043, +60,241 vs Oct 19)
+- **SPY**: call wall **780**: Oct 30 26%, Oct 23 23% (OI 84,138, -4,059 vs Oct 19) · put wall **760**: Oct 30 63%, Nov 20 15% (OI 207,043, +60,241 vs Oct 19)
 - **QQQ**: call wall **720**: Nov 20 55%, Oct 30 12% (OI 49,768, +505 vs Oct 19) · put wall **720**: Nov 20 43%, Oct 30 20% (OI 127,139, +4,667 vs Oct 19)
 - **TSLA**: call wall **400**: Nov 20 35%, Oct 23 31% (OI 45,627, +4,267 vs Oct 19) · put wall **350**: Nov 20 47%, Oct 23 20% (OI 23,041, +613 vs Oct 19)
-- **BABA**: call wall **110**: Nov 20 67%, Oct 23 19% (OI 14,073, +1,296 vs Oct 19) · put wall **110**: Nov 20 75%, Oct 23 10% (OI 12,805, -34 vs Oct 19)
+- **BABA**: call wall **120**: Nov 20 66%, Oct 30 15% (OI 30,117, +2,238 vs Oct 19) · put wall **110**: Nov 20 75%, Oct 23 10% (OI 12,805, -34 vs Oct 19)
 - **MU**: call wall **900**: Nov 20 42%, Oct 23 18% (OI 10,609, -91 vs Oct 19) · put wall **900**: Nov 20 34%, Oct 23 26% (OI 18,567, +2,381 vs Oct 19)
-- **AMD**: call wall **550**: Oct 23 36%, Nov 20 36% (OI 9,809, +1,798 vs Oct 19) · put wall **530**: Nov 20 33%, Nov 06 20% (OI 9,514, +298 vs Oct 19)
+- **AMD**: call wall **550**: Oct 23 36%, Nov 20 36% (OI 9,809, +1,798 vs Oct 19) · put wall **550**: Nov 20 50%, Oct 30 16% (OI 12,067, +140 vs Oct 19)
 - **SPCX**: call wall **155**: Oct 21 27%, Oct 23 26% (OI 37,588, +8,837 vs Oct 19) · put wall **140**: Nov 20 38%, Oct 23 29% (OI 49,948, +5,790 vs Oct 19)
 - **IWM**: call wall **275**: Oct 21 26%, Oct 23 18% (OI 40,875, +11,282 vs Oct 19) · put wall **270**: Nov 20 71%, Oct 30 17% (OI 201,025, -3,067 vs Oct 19)
+
+### 4) Positioning changes
+
+- **META**: OI change: no prior day · High volume vs OI today: 700C Oct 23 vol 6,435 (3.5× OI 1,866), 800C Oct 23 vol 5,002 (0.7× OI 7,550), 750C Oct 23 vol 3,756 (0.6× OI 6,186)
+- **SPY**: OI change: no prior day · High volume vs OI today: 770C Oct 21 vol 89,638 (25.0× OI 3,580), 769C Oct 21 vol 67,254 (18.8× OI 3,585), 768P Oct 21 vol 66,533 (20.9× OI 3,178)
+- **QQQ**: OI change: no prior day · High volume vs OI today: 720C Oct 21 vol 40,554 (9.2× OI 4,434), 725C Oct 21 vol 40,044 (17.3× OI 2,317), 718C Oct 21 vol 37,908 (25.6× OI 1,479)
+- **TSLA**: OI change: no prior day · High volume vs OI today: 375C Oct 23 vol 23,177 (3.7× OI 6,272), 400C Oct 23 vol 21,596 (1.5× OI 14,018), 410C Oct 23 vol 19,756 (2.3× OI 8,452)
+- **BABA**: OI change: no prior day · High volume vs OI today: 110C Oct 30 vol 3,806 (2.5× OI 1,527), 110C Oct 23 vol 1,609 (0.6× OI 2,668), 115C Oct 30 vol 923 (0.6× OI 1,566)
+- **MU**: OI change: no prior day · High volume vs OI today: 910C Oct 21 vol 26,344 (16.9× OI 1,557), 920C Oct 21 vol 24,927 (22.3× OI 1,119), 900P Oct 21 vol 22,133 (17.3× OI 1,282)
+- **AMD**: OI change: no prior day · High volume vs OI today: 550C Oct 21 vol 11,055 (10.2× OI 1,083), 540C Oct 21 vol 10,074 (21.7× OI 465), 500P Oct 23 vol 8,175 (3.2× OI 2,581)
+- **SPCX**: OI change: no prior day · High volume vs OI today: 125P Nov 20 vol 32,942 (2.5× OI 13,104), 135P Oct 21 vol 26,209 (6.0× OI 4,347), 160C Oct 21 vol 23,207 (5.3× OI 4,390)
+- **IWM**: OI change: no prior day · High volume vs OI today: 261P Nov 20 vol 64,239 (2.5× OI 25,921), 262P Nov 20 vol 54,111 (1.2× OI 45,262), 258P Nov 20 vol 48,871 (0.8× OI 62,383)
+
+σ = one expected move (ATM straddle). "near flip" = spot within 1σ of the zero-gamma level. Earnings shown only when inside the expiry window.
 
 _Descriptive only; not trading advice._
 
 ---
 
-## Weekly expiries (next 7 days): SPY & QQQ: 2026-10-20 18:43 ET
+## Weekly expiries (next 7 days): SPY & QQQ: 2026-10-20 20:30 ET
 
 Options expiring Oct 20 to Oct 27 (rolling 7 days).
 
 ### 1) Levels
 
-| Ticker | Spot | Regime | Vs flip | Zero gamma | Net GEX | Call GEX | Put GEX | Call wall (OI) | Put wall (OI) | Next call walls | Next put walls |
-|---|---|---|---|---|---|---|---|---|---|---|---|
-| SPY | 769.05 | negative | -0.37% | 771.89 | −$2.38B | +$4.87B | −$7.25B | 770 (19,530) | 769 (37,268) | 775 / 773 | 765 / 762 |
-| QQQ | 717.63 | negative | -1.22% | 726.49 | −$2.44B | +$1.90B | −$4.34B | 720 (10,858) | 710 (50,354) | 735 / 725 | 711 / 720 |
+| Ticker | Spot | Regime | Vs flip | Zero gamma | Net GEX | Call GEX | Put GEX | Call wall (OI; σ) | Put wall (OI; σ) | Next call walls | Next put walls | Earnings |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| SPY | 769.05 | negative, near flip | -0.40% (-0.7σ) | 772.10 | −$2.36B | +$4.82B | −$7.18B | 770 (19,530; +0.2σ) | 769 (37,268; -0.0σ) | 780 / 775 | 762 / 765 | - |
+| QQQ | 717.63 | negative | -1.28% (-1.3σ) | 726.92 | −$2.22B | +$1.91B | −$4.13B | 735 (29,256; +2.4σ) | 710 (50,354; -1.0σ) | 720 / 730 | 711 / 720 | - |
 
 ### 2) Dealer positioning and volatility
 
 | Ticker | Net GEX (per 1%) | Net DEX | Vanna (per vol pt) | Charm (per day) | Expected move | 25d skew | IV | P/C OI |
 |---|---|---|---|---|---|---|---|---|
-| SPY | −$2.38B | +$13.66B | +$510.0M | −$1.15B | ±0.6% | +0.7 | 11% | 1.77 |
-| QQQ | −$2.44B | +$12.42B | +$205.6M | −$894.7M | ±1.0% | +1.5 | 19% | 1.44 |
+| SPY | −$2.36B | +$14.65B | +$545.5M | −$1.74B | ±0.6% | +1.0 | 11% | 1.77 |
+| QQQ | −$2.22B | +$13.14B | +$207.4M | −$1.23B | ±1.0% | +1.9 | 20% | 1.52 |
 
 ### 3) Key expiries
 
 - **SPY**: call wall **770**: Oct 23 64%, Oct 21 18% (OI 19,530) · put wall **769**: Oct 23 87%, Oct 21 7% (OI 37,268)
-- **QQQ**: call wall **720**: Oct 23 41%, Oct 21 41% (OI 10,858) · put wall **710**: Oct 23 80%, Oct 21 11% (OI 50,354)
+- **QQQ**: call wall **735**: Oct 23 85%, Oct 21 9% (OI 29,256) · put wall **710**: Oct 23 80%, Oct 21 11% (OI 50,354)
 
 _Descriptive only; not trading advice._

@@ -1,24 +1,24 @@
-## Weekly expiries (next 7 days): SPY & QQQ: 2026-10-20 18:43 ET
+## Weekly expiries (next 7 days): SPY & QQQ: 2026-10-20 20:30 ET
 
 Options expiring Oct 20 to Oct 27 (rolling 7 days).
 
 ### 1) Levels
 
-| Ticker | Spot | Regime | Vs flip | Zero gamma | Net GEX | Call GEX | Put GEX | Call wall (OI) | Put wall (OI) | Next call walls | Next put walls |
-|---|---|---|---|---|---|---|---|---|---|---|---|
-| SPY | 769.05 | negative | -0.37% | 771.89 | −$2.38B | +$4.87B | −$7.25B | 770 (19,530) | 769 (37,268) | 775 / 773 | 765 / 762 |
-| QQQ | 717.63 | negative | -1.22% | 726.49 | −$2.44B | +$1.90B | −$4.34B | 720 (10,858) | 710 (50,354) | 735 / 725 | 711 / 720 |
+| Ticker | Spot | Regime | Vs flip | Zero gamma | Net GEX | Call GEX | Put GEX | Call wall (OI; σ) | Put wall (OI; σ) | Next call walls | Next put walls | Earnings |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| SPY | 769.05 | negative, near flip | -0.40% (-0.7σ) | 772.10 | −$2.36B | +$4.82B | −$7.18B | 770 (19,530; +0.2σ) | 769 (37,268; -0.0σ) | 780 / 775 | 762 / 765 | - |
+| QQQ | 717.63 | negative | -1.28% (-1.3σ) | 726.92 | −$2.22B | +$1.91B | −$4.13B | 735 (29,256; +2.4σ) | 710 (50,354; -1.0σ) | 720 / 730 | 711 / 720 | - |
 
 ### 2) Dealer positioning and volatility
 
 | Ticker | Net GEX (per 1%) | Net DEX | Vanna (per vol pt) | Charm (per day) | Expected move | 25d skew | IV | P/C OI |
 |---|---|---|---|---|---|---|---|---|
-| SPY | −$2.38B | +$13.66B | +$510.0M | −$1.15B | ±0.6% | +0.7 | 11% | 1.77 |
-| QQQ | −$2.44B | +$12.42B | +$205.6M | −$894.7M | ±1.0% | +1.5 | 19% | 1.44 |
+| SPY | −$2.36B | +$14.65B | +$545.5M | −$1.74B | ±0.6% | +1.0 | 11% | 1.77 |
+| QQQ | −$2.22B | +$13.14B | +$207.4M | −$1.23B | ±1.0% | +1.9 | 20% | 1.52 |
 
 ### 3) Key expiries
 
 - **SPY**: call wall **770**: Oct 23 64%, Oct 21 18% (OI 19,530) · put wall **769**: Oct 23 87%, Oct 21 7% (OI 37,268)
-- **QQQ**: call wall **720**: Oct 23 41%, Oct 21 41% (OI 10,858) · put wall **710**: Oct 23 80%, Oct 21 11% (OI 50,354)
+- **QQQ**: call wall **735**: Oct 23 85%, Oct 21 9% (OI 29,256) · put wall **710**: Oct 23 80%, Oct 21 11% (OI 50,354)
 
 _Descriptive only; not trading advice._

@@ -126,15 +126,6 @@ jobs:
           [ -n "${{ inputs.max_dte }}" ] && brief=data/adhoc/latest/brief.md
           cat "$brief" >> "$GITHUB_STEP_SUMMARY" 2>/dev/null || echo "No brief produced" >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Upload charts
-        if: steps.gate.outputs.run == 'true' && always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: gex-${{ github.run_id }}
-          path: data/output/*/*/
-          retention-days: 14
-          if-no-files-found: ignore
-
       - name: Commit results
         id: commit
         if: steps.gate.outputs.run == 'true' && always()

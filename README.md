@@ -120,7 +120,7 @@ A small panel in the top-right corner shows the regime and the as-of time. If th
 
 - **Tickers:** set by `TICKERS` near the top of the workflow file (currently META, SPY, QQQ, TSLA, BABA, MU, AMD, SPCX, IWM).
 - **Where results go:** each run commits its reports, JSON, levels strings and history to the **`gex-data` branch**. The latest TradingView line is at `gex-data:output/latest/META_tradingview.txt`, which you can open from the GitHub app. Code and data stay on separate branches.
-- **Charts:** charts and `contracts.csv` are not committed. They're attached to each run as a downloadable artifact, kept for 14 days.
+- **Charts:** per-ticker charts and `contracts.csv` are not kept from cloud runs. Only the summary heatmap is committed (see "Colour cues and heatmap"). Run the tool locally for the per-ticker charts.
 - **Quick view:** each run's page in the **Actions** tab shows the summary table and the TradingView line.
 - **Manual run:** Actions → GEX levels → **Run workflow**. You can enter other tickers there.
 - **Failures:** if every ticker fails (for example, Yahoo blocks the request), the run is marked failed and GitHub emails you.

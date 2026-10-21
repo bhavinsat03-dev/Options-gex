@@ -22,14 +22,16 @@ NEUTRAL = "#f0efec"
 WARN = "#fab219"
 
 DIVERGING = LinearSegmentedColormap.from_list("gex_div", [NEGATIVE, "#f2a3a2", NEUTRAL, "#9ec5f4", POSITIVE])
-SEQUENTIAL = LinearSegmentedColormap.from_list("gex_seq", [NEUTRAL, "#b7d3f6", "#5598e7", "#1c5cab"])
+CALL_RAMP = LinearSegmentedColormap.from_list("gex_call", [NEUTRAL, "#b7d3f6", "#5598e7", "#1c5cab"])
+PUT_RAMP = LinearSegmentedColormap.from_list("gex_put", [NEUTRAL, "#f6c1c0", "#e86a69", "#b52f2e"])
 
+# Same columns, in the same order, as table 1 of the brief.
 # (header, sub-header, width in inches)
 COLUMNS = [
-    ("Ticker", "", 0.9), ("Spot", "", 1.0), ("Regime", "", 1.55), ("Vs flip", "σ from zero-γ", 1.15),
-    ("γ balance", "net ÷ gross GEX", 1.35), ("Net GEX", "per 1%", 1.1), ("Call wall", "OI · σ away", 1.45),
-    ("Put wall", "OI · σ away", 1.45), ("IV", "25-delta call", 0.85), ("Exp. move", "ATM straddle", 1.0),
-    ("P/C OI", "", 0.8),
+    ("Ticker", "", 0.85), ("Spot", "", 0.95), ("Regime", "", 1.5), ("Vs flip", "% · σ", 1.15),
+    ("Zero γ", "flip level", 1.05), ("Net GEX", "per 1%", 1.1), ("Call GEX", "", 1.1), ("Put GEX", "", 1.1),
+    ("Call wall", "OI · σ away", 1.4), ("Put wall", "OI · σ away", 1.4),
+    ("Next call", "walls 2 & 3", 1.25), ("Next put", "walls 2 & 3", 1.25),
 ]
 ROW_H, HEAD_H = 0.62, 0.9
 
@@ -111,44 +113,40 @@ def render(summaries: list[dict], path: Path, as_of: str, title: str = "GEX heat
         near = vs_flip is not None and abs(vs_flip) < 1
         ticker = s["ticker"] + ("*" if s.get("derived") else "")
 
+        call_gex, put_gex = s.get("call_gex"), s.get("put_gex")
+        gross = (call_gex - put_gex) if call_gex is not None and put_gex is not None else 0
+
         cell(0, ri, ticker, bold=True)
         cell(1, ri, f"{s['spot']:,.2f}")
         cell(2, ri, "● positive" if positive else "● negative", fill=POSITIVE if positive else NEGATIVE,
              sub="near flip" if near else None, border=WARN if near else None)
-        if vs_flip is None:
+        zg = s.get("zero_gamma")
+        if vs_flip is None or not zg:
             cell(3, ri, "–")
         else:
-            cell(3, ri, f"{vs_flip:+.1f}σ", fill=DIVERGING((_clip(vs_flip, -3, 3) + 3) / 6), border=WARN if near else None)
-        call_gex, put_gex = s.get("call_gex"), s.get("put_gex")
-        if net is not None and call_gex is not None and put_gex is not None and call_gex - put_gex:
-            balance = net / (call_gex - put_gex)
-            cell(4, ri, f"{balance:+.0%}", fill=DIVERGING(_clip(balance, -0.5, 0.5) + 0.5))
-        else:
-            cell(4, ri, "–")
-        cell(5, ri, _flow(net), fill=None if net is None else DIVERGING(0.8 if net >= 0 else 0.2))
-        for ci, strike, oi in ((6, s.get("call_wall"), s.get("call_wall_oi")), (7, s.get("put_wall"), s.get("put_wall_oi"))):
+            cell(3, ri, f"{(s['spot'] / zg - 1) * 100:+.2f}%", sub=f"{vs_flip:+.1f}σ",
+                 fill=DIVERGING((_clip(vs_flip, -3, 3) + 3) / 6), border=WARN if near else None)
+        cell(4, ri, "–" if zg is None else f"{zg:,.2f}")
+        # Net GEX is shaded by net ÷ gross GEX, so tickers of very different size share one scale.
+        cell(5, ri, _flow(net), fill=DIVERGING(_clip(net / gross, -0.5, 0.5) + 0.5) if net is not None and gross else None)
+        # Call and put GEX are shaded by their share of gross GEX: darker = that side dominates.
+        cell(6, ri, _flow(call_gex), fill=CALL_RAMP(_clip((call_gex / gross - 0.3) / 0.4, 0, 1)) if gross else None)
+        cell(7, ri, _flow(put_gex), fill=PUT_RAMP(_clip((-put_gex / gross - 0.3) / 0.4, 0, 1)) if gross else None)
+        for ci, strike, oi, ramp in ((8, s.get("call_wall"), s.get("call_wall_oi"), CALL_RAMP),
+                                     (9, s.get("put_wall"), s.get("put_wall_oi"), PUT_RAMP)):
             if strike is None:
                 cell(ci, ri, "–")
                 continue
             sigma = _sigma(s, strike)
             parts = ([f"{oi:,}"] if oi is not None else []) + ([f"{sigma:+.1f}σ"] if sigma is not None else [])
             cell(ci, ri, f"{strike:g}", sub=" · ".join(parts) or None,
-                 fill=SEQUENTIAL(max(0.0, 1 - abs(sigma) / 3)) if sigma is not None else None)
-        skew = s.get("skew_25d")
-        if skew:
-            iv = skew["call_iv"]
-            cell(8, ri, f"{iv * 100:.0f}%", fill=SEQUENTIAL(_clip((iv - 0.1) / 0.5, 0, 1)))
-        else:
-            cell(8, ri, "–")
-        em = s.get("expected_move")
-        cell(9, ri, f"±{em['move_pct']:.1f}%" if em else "–")
-        pc = s.get("put_call_oi_ratio")
-        cell(10, ri, "–" if pc is None else f"{pc:.2f}",
-             fill=None if pc is None else DIVERGING(_clip(0.5 - (pc - 1) / 3, 0, 1)))
+                 fill=ramp(max(0.0, 1 - abs(sigma) / 3)) if sigma is not None else None)
+        cell(10, ri, " / ".join(f"{k:g}" for k in s.get("call_walls", [])[1:]) or "–")
+        cell(11, ri, " / ".join(f"{k:g}" for k in s.get("put_walls", [])[1:]) or "–")
 
     ly = top + HEAD_H + ROW_H * len(rows) + 0.35
-    items = [(POSITIVE, "positive gamma / call-heavy"), (NEGATIVE, "negative gamma / put-heavy"),
-             ("#1c5cab", "darker blue = wall closer to spot · higher IV"),
+    items = [(POSITIVE, "positive gamma / calls dominate"), (NEGATIVE, "negative gamma / puts dominate"),
+             ("#1c5cab", "darker = wall closer to spot"),
              (WARN, "yellow outline = near flip (spot within 1σ of zero gamma)")]
     lx = 0.1
     for color, label in items:
@@ -157,8 +155,8 @@ def render(summaries: list[dict], path: Path, as_of: str, title: str = "GEX heat
                                     fc="none" if outline else color, ec=color if outline else "none", lw=2))
         ax.text(lx + 0.3, ly, label, fontsize=8, color=INK_SECONDARY, va="center")
         lx += 0.55 + len(label) * 0.075
-    note = ("σ = one expected move (ATM straddle). γ balance = net GEX ÷ (call GEX + |put GEX|), "
-            "so tickers of different size compare on one scale.")
+    note = ("σ = one expected move (ATM straddle). Net GEX shading = net ÷ (call GEX + |put GEX|); "
+            "call and put GEX shading = each side's share of that total, so tickers of different size compare.")
     if any(s.get("derived") for s in rows):
         note += " * levels derived from a proxy."
     ax.text(0.1, ly + 0.42, note, fontsize=7.5, color=MUTED, va="center")

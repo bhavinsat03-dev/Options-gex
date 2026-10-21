@@ -1,2 +1,3 @@
 *.png
 contracts.csv
+!heatmap.png

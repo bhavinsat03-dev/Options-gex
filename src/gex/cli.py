@@ -7,7 +7,7 @@ import json
 import logging
 import sys
 import time
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 import pandas as pd
@@ -69,7 +69,7 @@ class Runner:
     """Runs tickers for one timestamped invocation and writes their outputs."""
 
     def __init__(self, settings: Settings, now: datetime, fetch=data.fetch_chain,
-                 fetch_spot=data.fetch_spot_only):
+                 fetch_spot=data.fetch_spot_only, fetch_earnings=data.fetch_earnings_date):
         self.settings = settings
         self.now = now
         self.stamp = now.astimezone(data.NY).strftime("%Y%m%d_%H%M%S")
@@ -78,6 +78,7 @@ class Runner:
         self.history_dir = self.root / "history"
         self.fetch = fetch
         self.fetch_spot = fetch_spot
+        self.fetch_earnings = fetch_earnings
         self.summaries: dict[str, dict] = {}
         self.changes: dict[str, tuple[str, list[dict]]] = {}
 
@@ -105,7 +106,17 @@ class Runner:
             from .plot import plot_result
 
             plot_result(result, out_dir)
-        return self._finish(result.summary(), out_dir)
+        summary = result.summary()
+        summary["earnings_date"] = self._earnings_in_window(ticker)
+        return self._finish(summary, out_dir, result.contracts)
+
+    def _earnings_in_window(self, ticker: str) -> str | None:
+        """Next earnings date if it falls inside the expiry window, else None."""
+        earnings = self.fetch_earnings(ticker, self.settings, self.today)
+        if not earnings:
+            return None
+        days = (date.fromisoformat(earnings) - self.today).days
+        return earnings if 0 <= days <= self.settings.max_dte else None
 
     def derive(self, ticker: str, proxy: str) -> dict:
         """Levels for ``ticker`` mapped from ``proxy`` by spot ratio."""
@@ -136,7 +147,7 @@ class Runner:
         out_dir.mkdir(parents=True, exist_ok=True)
         return out_dir
 
-    def _finish(self, summary: dict, out_dir: Path) -> dict:
+    def _finish(self, summary: dict, out_dir: Path, contracts: pd.DataFrame | None = None) -> dict:
         ticker = summary["ticker"]
         summary["as_of"] = self.now.isoformat(timespec="seconds")
         changes, previous_as_of = [], None
@@ -146,6 +157,11 @@ class Runner:
                 changes = history.diff(previous, summary)
                 previous_as_of = previous.get("as_of")
                 self.changes[ticker] = (previous_as_of, changes)
+            if contracts is not None:
+                # OI is published once a day, so compare against the previous day's snapshot.
+                summary["oi_changes"] = gex.oi_changes(
+                    contracts, history.load_previous_day_oi(self.history_dir, ticker, self.stamp))
+                history.save_oi(self.history_dir, ticker, self.stamp, contracts)
             history.save(self.history_dir, summary, self.stamp)
         (out_dir / "summary.json").write_text(json.dumps(summary, indent=2))
         report.write(out_dir / "report.md", summary, changes, previous_as_of)
@@ -214,14 +230,14 @@ def format_table(df: pd.DataFrame) -> str:
 
 
 def main(argv=None, fetch=data.fetch_chain, fetch_spot=data.fetch_spot_only,
-         now: datetime | None = None) -> int:
+         fetch_earnings=data.fetch_earnings_date, now: datetime | None = None) -> int:
     args = parse_args(argv)
     logging.basicConfig(
         level=logging.INFO if args.verbose else logging.WARNING,
         format="%(levelname)s %(name)s: %(message)s",
     )
     settings = build_settings(args)
-    runner = Runner(settings, now or datetime.now(timezone.utc), fetch, fetch_spot)
+    runner = Runner(settings, now or datetime.now(timezone.utc), fetch, fetch_spot, fetch_earnings)
 
     rows, results = [], []
     for i, ticker in enumerate(settings.tickers):

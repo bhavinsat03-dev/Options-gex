@@ -23,12 +23,16 @@ def fake_spot(ticker, settings):
     raise DataError("no price")
 
 
+def fake_earnings(ticker, settings, today):
+    return "2026-10-29" if ticker == "QQQ" else None
+
+
 def run(tmp_path, now, *args):
     cfg = tmp_path / "config.toml"
     if not cfg.exists():
         cfg.write_text('tickers = ["IGNORED"]\npause_between_tickers = 0\n')
     return cli.main([*args, "-c", str(cfg), "-o", str(tmp_path / "out")],
-                    fetch=fake_fetch, fetch_spot=fake_spot, now=now)
+                    fetch=fake_fetch, fetch_spot=fake_spot, fetch_earnings=fake_earnings, now=now)
 
 
 def test_end_to_end(tmp_path, now, capsys):
@@ -91,7 +95,7 @@ def test_history_changes_printed(tmp_path, now, capsys):
 
     later = now + timedelta(days=1)
     cli.main(["QQQ", "-c", str(tmp_path / "config.toml"), "-o", str(tmp_path / "out"), "--no-plots"],
-             fetch=fetch_shifted, now=later)
+             fetch=fetch_shifted, fetch_earnings=fake_earnings, now=later)
     out = capsys.readouterr().out
     assert "QQQ changes since" in out
     assert "Call wall: 110.00 -> 115.00 (+5.00)" in out
@@ -119,7 +123,7 @@ def test_brief_has_two_tables(tmp_path, now):
     run(tmp_path, now, "QQQ", "bad", "--no-plots")
     brief = (tmp_path / "out" / "latest" / "brief.md").read_text()
     assert "### 1) Levels" in brief and "### 2) Dealer positioning and volatility" in brief
-    assert "| QQQ | 100.00 |" in brief and "110 (10,000)" in brief
+    assert "| QQQ | 100.00 |" in brief and "110 (10,000; +" in brief
     assert "Failed: BAD" in brief
 
 
@@ -144,7 +148,7 @@ def test_brief_key_expiries_and_oi_change(tmp_path, now):
         return 100.0, more
 
     cli.main(["QQQ", "-c", str(tmp_path / "config.toml"), "-o", str(tmp_path / "out"), "--no-plots"],
-             fetch=fetch_more, now=now + timedelta(days=1))
+             fetch=fetch_more, fetch_earnings=fake_earnings, now=now + timedelta(days=1))
     brief = (tmp_path / "out" / "latest" / "brief.md").read_text()
     assert "call wall **110**" in brief and "OI 11,000, +1,000 vs Oct 16" in brief
 
@@ -165,3 +169,50 @@ def test_weekly_brief_without_history(tmp_path, now):
     brief = (tmp_path / "out" / "latest" / "brief.md").read_text()
     assert brief.startswith("## Weekly: ")
     assert "### 3) Key expiries\n" in brief and "vs " not in brief and "no prior day" not in brief
+
+
+def test_brief_positioning_section(tmp_path, now):
+    run(tmp_path, now, "QQQ", "--no-plots")
+    brief = (tmp_path / "out" / "latest" / "brief.md").read_text()
+    assert "### 4) Positioning changes" in brief and "OI change: no prior day" in brief
+    assert (tmp_path / "out" / "history" / f"QQQ_{STAMP}_oi.csv.gz").exists()
+
+    more = make_raw()
+    more["volume"] = 0
+    sel = (more["type"] == "put") & (more["strike"] == 95) & (more["expiration"] == "2026-10-23")
+    more.loc[sel, "open_interest"] += 4000           # new positioning in the 95 puts
+    more.loc[sel, "volume"] = 3000                   # ...and they are still trading hard today
+    more.loc[(more["type"] == "call") & (more["strike"] == 110), "open_interest"] -= 300
+
+    def fetch_more(ticker, settings, when):
+        return 100.0, more
+
+    cli.main(["QQQ", "-c", str(tmp_path / "config.toml"), "-o", str(tmp_path / "out"), "--no-plots"],
+             fetch=fetch_more, fetch_earnings=fake_earnings, now=now + timedelta(days=1))
+    brief = (tmp_path / "out" / "latest" / "brief.md").read_text()
+    assert "OI adds vs Oct 16: 95P Oct 23 +4,000 (OI 5,000)" in brief
+    assert "OI drops vs Oct 16: 110C Oct 23 -300" in brief or "OI drops vs Oct 16: 110C Nov 20 -300" in brief
+    assert "High volume vs OI today: 95P Oct 23 vol 3,000 (0.6× OI 5,000)" in brief
+    summary = json.loads((tmp_path / "out" / "QQQ" / "20261017_100000" / "summary.json").read_text())
+    assert summary["oi_changes"]["adds"][0]["change"] == 4000
+
+
+def test_brief_earnings_flag_and_sigma(tmp_path, now):
+    run(tmp_path, now, "QQQ", "NDX", "--no-plots")
+    brief = (tmp_path / "out" / "latest" / "brief.md").read_text()
+    assert "| Earnings |" in brief
+    qqq = next(line for line in brief.splitlines() if line.startswith("| QQQ |"))
+    assert qqq.rstrip("| ").endswith("Oct 29")
+    assert "σ)" in qqq                                # vs-flip and wall distances in expected-move units
+    ndx = next(line for line in brief.splitlines() if line.startswith("| NDX"))
+    assert ndx.rstrip("| ").endswith("-")             # derived ticker: no earnings flag
+    assert "4510 (+" in ndx                            # σ still shown without OI for derived levels
+
+
+def test_earnings_outside_window_not_flagged(tmp_path, now):
+    cfg = tmp_path / "config.toml"
+    cfg.write_text('tickers = ["QQQ"]\npause_between_tickers = 0\n')
+    cli.main(["QQQ", "-c", str(cfg), "-o", str(tmp_path / "out"), "--no-plots"],
+             fetch=fake_fetch, fetch_earnings=lambda t, s, d: "2027-03-01", now=now)
+    summary = json.loads((tmp_path / "out" / "QQQ" / STAMP / "summary.json").read_text())
+    assert summary["earnings_date"] is None

@@ -70,3 +70,24 @@ def test_select_expirations_weekly_window():
     exps = [(today + timedelta(days=d)).isoformat() for d in range(0, 30)]
     sel = select_expirations(exps, today, Settings(max_dte=7))
     assert sel[0] == "2026-10-20" and sel[-1] == "2026-10-27" and len(sel) == 8
+
+
+def test_next_earnings_date_picks_first_upcoming():
+    from datetime import date
+    import pandas as pd
+    from gex.data import next_earnings_date
+    today = date(2026, 10, 20)
+    cal = {"Earnings Date": [date(2026, 7, 29), pd.Timestamp("2026-10-28"), date(2026, 10, 29)]}
+    assert next_earnings_date(cal, today) == "2026-10-28"
+    assert next_earnings_date({}, today) is None
+    assert next_earnings_date(None, today) is None
+    assert next_earnings_date({"Earnings Date": []}, today) is None
+
+
+def test_clean_chain_fills_missing_volume(raw_chain, now):
+    from gex.config import Settings
+    from gex.data import clean_chain
+    df = clean_chain(raw_chain, 100.0, now, Settings())
+    assert (df["volume"] == 0).all()
+    raw = raw_chain.assign(volume=[float("nan")] * (len(raw_chain) - 1) + [12.0])
+    assert clean_chain(raw, 100.0, now, Settings())["volume"].max() == 12

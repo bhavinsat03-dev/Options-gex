@@ -17,7 +17,7 @@ log = logging.getLogger(__name__)
 NY = ZoneInfo("America/New_York")
 SECONDS_PER_YEAR = 365.0 * 24 * 3600
 
-RAW_COLUMNS = ["type", "expiration", "strike", "open_interest", "iv", "bid", "ask", "last"]
+RAW_COLUMNS = ["type", "expiration", "strike", "open_interest", "volume", "iv", "bid", "ask", "last"]
 
 
 class DataError(RuntimeError):
@@ -80,6 +80,7 @@ def _normalize(df: pd.DataFrame, option_type: str, expiration: str) -> pd.DataFr
             "expiration": expiration,
             "strike": df.get("strike"),
             "open_interest": df.get("openInterest"),
+            "volume": df.get("volume"),
             "iv": df.get("impliedVolatility"),
             "bid": df.get("bid"),
             "ask": df.get("ask"),
@@ -119,6 +120,44 @@ def fetch_chain(ticker: str, settings: Settings, now: datetime | None = None):
     return spot, pd.concat(frames, ignore_index=True)
 
 
+def next_earnings_date(calendar, today: date) -> str | None:
+    """First earnings date on or after ``today`` from a yfinance calendar.
+
+    ``calendar`` is the dict yfinance returns (``{"Earnings Date": [...]}``);
+    older versions return a DataFrame, which is handled too. Returns an ISO
+    date or None when nothing usable is listed.
+    """
+    try:
+        dates = calendar["Earnings Date"] if isinstance(calendar, dict) else calendar.loc["Earnings Date"]
+    except (KeyError, TypeError, AttributeError):
+        return None
+    if not isinstance(dates, (list, tuple, pd.Series, np.ndarray)):
+        dates = [dates]
+    upcoming = []
+    for d in dates:
+        try:
+            d = pd.Timestamp(d).date()
+        except (TypeError, ValueError):
+            continue
+        if d >= today:
+            upcoming.append(d)
+    return min(upcoming).isoformat() if upcoming else None
+
+
+def fetch_earnings_date(ticker: str, settings: Settings, today: date) -> str | None:
+    """Next earnings date for ``ticker``, or None (ETFs, indexes, lookup failure).
+
+    Never raises: an earnings flag is not worth failing a run over.
+    """
+    import yfinance as yf
+
+    try:
+        return next_earnings_date(yf.Ticker(settings.yahoo_symbol(ticker)).calendar, today)
+    except Exception as exc:
+        log.warning("%s: earnings date lookup failed: %s", ticker, exc)
+        return None
+
+
 def time_to_expiry(expiration: pd.Series, now: datetime, min_days: float) -> pd.Series:
     """Years until 16:00 New York time on each expiration date, floored."""
     now_utc = now.astimezone(timezone.utc)
@@ -145,6 +184,10 @@ def clean_chain(raw: pd.DataFrame, spot: float, now: datetime, settings: Setting
     df = df[(df["iv"] >= settings.min_iv) & (df["iv"] <= settings.max_iv)]
     lo, hi = spot * (1 - settings.strike_range_pct), spot * (1 + settings.strike_range_pct)
     df = df[(df["strike"] >= lo) & (df["strike"] <= hi)]
+    # Volume is optional in the raw chain (missing in synthetic data) and
+    # often NaN on Yahoo; treat both as zero.
+    volume = pd.to_numeric(df["volume"], errors="coerce") if "volume" in df else pd.Series(0, index=df.index)
+    df["volume"] = volume.fillna(0).astype(int)
 
     if df.empty:
         return df.assign(t=pd.Series(dtype=float)).reset_index(drop=True)

@@ -5,6 +5,10 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pandas as pd
+
+OI_COLUMNS = ["expiration", "strike", "type", "open_interest", "volume"]
+
 TRACKED = [
     ("call_wall", "Call wall"),
     ("put_wall", "Put wall"),
@@ -41,6 +45,35 @@ def load_previous_day(history_dir: Path, ticker: str, stamp: str) -> dict | None
     comparison for it. Stamps are YYYYMMDD_HHMMSS in New York time.
     """
     return load_previous(history_dir, ticker, stamp[:8] + "_000000")
+
+
+def oi_path(history_dir: Path, ticker: str, stamp: str) -> Path:
+    return Path(history_dir) / f"{ticker}_{stamp}_oi.csv.gz"
+
+
+def save_oi(history_dir: Path, ticker: str, stamp: str, contracts: pd.DataFrame) -> Path:
+    """Compact per-contract OI snapshot, so later runs can report OI changes."""
+    path = oi_path(history_dir, ticker, stamp)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    cols = [c for c in OI_COLUMNS if c in contracts]
+    contracts[cols].to_csv(path, index=False, compression="gzip")
+    return path
+
+
+def load_previous_day_oi(history_dir: Path, ticker: str, stamp: str) -> pd.DataFrame | None:
+    """The OI snapshot matching ``load_previous_day``'s run, or None."""
+    history_dir = Path(history_dir)
+    if not history_dir.is_dir():
+        return None
+    prefix, cutoff = f"{ticker}_", stamp[:8] + "_000000"
+    stamps = sorted(
+        p.name[len(prefix):-len("_oi.csv.gz")]
+        for p in history_dir.glob(f"{ticker}_*_oi.csv.gz")
+        if p.name[len(prefix):-len("_oi.csv.gz")] < cutoff
+    )
+    if not stamps:
+        return None
+    return pd.read_csv(oi_path(history_dir, ticker, stamps[-1]), dtype={"expiration": str})
 
 
 def save(history_dir: Path, summary: dict, stamp: str) -> Path:

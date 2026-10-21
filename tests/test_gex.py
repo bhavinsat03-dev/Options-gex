@@ -304,3 +304,29 @@ def test_call_and_put_gex_sum_to_net(raw_chain, now):
     s = _result(raw_chain, now).summary()
     assert s["call_gex"] > 0 > s["put_gex"]
     assert s["call_gex"] + s["put_gex"] == pytest.approx(s["net_gex"])
+
+
+def test_oi_changes_ignores_expired_and_ranks_by_size(raw_chain, now):
+    cur = _result(raw_chain, now).contracts
+    prev = cur[["expiration", "strike", "type", "open_interest"]].copy()
+    prev.loc[(prev.strike == 110) & (prev.type == "call") & (prev.expiration == "2026-10-23"), "open_interest"] -= 2000
+    prev.loc[(prev.strike == 90) & (prev.type == "put") & (prev.expiration == "2026-11-20"), "open_interest"] += 500
+    # An expired contract in the old snapshot must not appear as a drop.
+    prev = pd.concat([prev, pd.DataFrame([{"expiration": "2026-10-09", "strike": 100.0, "type": "put", "open_interest": 99999}])])
+    oc = gex.oi_changes(cur, prev)
+    assert oc["adds"][0] == {"expiration": "2026-10-23", "strike": 110.0, "type": "call", "oi": 5000, "change": 2000}
+    assert oc["drops"][0]["change"] == -500 and oc["drops"][0]["strike"] == 90.0
+    assert all(c["expiration"] != "2026-10-09" for c in oc["drops"])
+    assert gex.oi_changes(cur, None) is None
+
+
+def test_volume_vs_oi_filters_and_sorts(raw_chain, now):
+    chain = raw_chain.copy()
+    chain["volume"] = 0
+    chain.loc[(chain.strike == 105) & (chain.type == "call"), "volume"] = 900     # 0.9x of 1000 OI
+    chain.loc[(chain.strike == 110) & (chain.type == "call"), "volume"] = 1000    # 0.2x of 5000 OI: filtered
+    chain.loc[(chain.strike == 85) & (chain.type == "put"), "volume"] = 100       # below min volume
+    hot = gex.volume_vs_oi(_result(chain, now).contracts)
+    assert [c["strike"] for c in hot] == [105.0, 105.0]
+    assert hot[0]["ratio"] == 0.9 and hot[0]["volume"] == 900
+    assert gex.volume_vs_oi(_result(raw_chain, now).contracts) == []

@@ -466,6 +466,7 @@ class GexResult:
             "put_wall_oi": strike_oi(self.by_strike, self.put_wall, "put_oi"),
             "skew_25d": self.skew_25d,
             "expiry_concentration": self.expiry_concentration,
+            "volume_vs_oi": volume_vs_oi(self.contracts),
             "contracts": len(self.contracts),
             "expirations": len(self.expirations),
         }
@@ -514,6 +515,60 @@ def compute(
     )
 
 
+# ----------------------------------------------------------- positioning flow
+
+CONTRACT_KEY = ["expiration", "strike", "type"]
+
+
+def oi_changes(contracts: pd.DataFrame, previous: pd.DataFrame | None, top: int = 3) -> dict | None:
+    """Largest open-interest adds and drops per contract since ``previous``.
+
+    ``previous`` is an earlier day's contract snapshot (CONTRACT_KEY plus
+    open_interest). Contracts whose expiration is no longer in the current
+    chain are ignored, so expired options do not show up as drops.
+    """
+    if previous is None or previous.empty:
+        return None
+    now = contracts[CONTRACT_KEY + ["open_interest"]].astype({"expiration": str})
+    before = previous[CONTRACT_KEY + ["open_interest"]].astype({"expiration": str})
+    before = before[before["expiration"].isin(set(now["expiration"]))]
+    merged = now.merge(before, on=CONTRACT_KEY, how="outer", suffixes=("", "_prev")).fillna(0)
+    merged["change"] = (merged["open_interest"] - merged["open_interest_prev"]).astype(int)
+    merged = merged[merged["change"] != 0]
+
+    def rows(df):
+        return [
+            {"expiration": r.expiration, "strike": float(r.strike), "type": r.type,
+             "oi": int(r.open_interest), "change": int(r.change)}
+            for r in df.itertuples()
+        ]
+
+    return {
+        "adds": rows(merged.nlargest(top, "change")),
+        "drops": rows(merged.nsmallest(top, "change")),
+    }
+
+
+def volume_vs_oi(contracts: pd.DataFrame, min_volume: int = 500, min_ratio: float = 0.5,
+                 top: int = 3) -> list[dict]:
+    """Contracts trading unusually hard today relative to their open interest.
+
+    Open interest only updates overnight, so today's volume is the only
+    intraday sign of new positioning. Returns the ``top`` contracts by volume
+    among those with volume >= ``min_volume`` and volume/OI >= ``min_ratio``.
+    """
+    if "volume" not in contracts:
+        return []
+    df = contracts[contracts["volume"] >= min_volume]
+    ratio = df["volume"] / df["open_interest"].clip(lower=1)
+    df = df.assign(ratio=ratio)[ratio >= min_ratio].nlargest(top, "volume")
+    return [
+        {"expiration": str(r.expiration), "strike": float(r.strike), "type": r.type,
+         "volume": int(r.volume), "oi": int(r.open_interest), "ratio": round(float(r.ratio), 2)}
+        for r in df.itertuples()
+    ]
+
+
 # -------------------------------------------------------------- proxy levels
 
 PRICE_LEVELS = ("call_wall", "put_wall", "abs_gamma_strike", "zero_gamma", "max_call_oi_strike", "max_put_oi_strike")
@@ -558,6 +613,9 @@ def derive_summary(proxy: dict, ticker: str, spot: float) -> dict:
         )
     out["oi_expiries"] = {}
     out["oi_at"] = {}
+    out["volume_vs_oi"] = []
+    out["oi_changes"] = None
+    out["earnings_date"] = None
     exp_conc = proxy.get("expiry_concentration")
     if exp_conc:
         out["expiry_concentration"] = dict(exp_conc, net_gex_after_monthly=None)

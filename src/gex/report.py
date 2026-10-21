@@ -207,6 +207,61 @@ def _date(exp: str) -> str:
     return datetime.strptime(exp, "%Y-%m-%d").strftime("%b %d")
 
 
+def _sigma(s: dict, level) -> float | None:
+    """Distance from spot to ``level`` in expected-move units (1σ = the ATM straddle)."""
+    em = s.get("expected_move")
+    if level is None or not em or not em.get("move_pct"):
+        return None
+    return (level / s["spot"] - 1) * 100 / em["move_pct"]
+
+
+NEAR_FLIP_SIGMA = 1.0
+
+
+def regime_label(s: dict) -> str:
+    """'positive', 'negative', or 'positive, near flip' when spot is within 1σ of it."""
+    label = s["regime"].split()[0]
+    sigma = _sigma(s, s.get("zero_gamma"))
+    if sigma is not None and abs(sigma) < NEAR_FLIP_SIGMA:
+        label += ", near flip"
+    return label
+
+
+def _strike_oi_sigma(s: dict, strike, oi) -> str:
+    """'770 (53,570; +0.2σ)': wall, its OI and its distance from spot in σ."""
+    if strike is None:
+        return "-"
+    sigma = _sigma(s, strike)
+    parts = [] if oi is None else [f"{oi:,}"]
+    if sigma is not None:
+        parts.append(f"{sigma:+.1f}σ")
+    return f"{strike:g} ({'; '.join(parts)})" if parts else f"{strike:g}"
+
+
+def _contract(c: dict) -> str:
+    """'760P Oct 30'"""
+    return f"{c['strike']:g}{c['type'][0].upper()} {_date(c['expiration'])}"
+
+
+def positioning_line(s: dict, prev: dict | None) -> str:
+    """OI adds/drops since the previous day and today's high volume-vs-OI contracts."""
+    parts = []
+    oc = s.get("oi_changes")
+    if oc is None:
+        parts.append("OI change: no prior day")
+    else:
+        day = datetime.fromisoformat(prev["as_of"]).astimezone(NY) if prev else None
+        label = f" vs {day:%b %d}" if day else ""
+        adds = ", ".join(f"{_contract(c)} {c['change']:+,} (OI {c['oi']:,})" for c in oc["adds"] if c["change"] > 0)
+        drops = ", ".join(f"{_contract(c)} {c['change']:+,} (OI {c['oi']:,})" for c in oc["drops"] if c["change"] < 0)
+        parts.append(f"OI adds{label}: {adds or 'none'}")
+        parts.append(f"OI drops{label}: {drops or 'none'}")
+    hot = s.get("volume_vs_oi") or []
+    parts.append("High volume vs OI today: " + (", ".join(
+        f"{_contract(c)} vol {c['volume']:,} ({c['ratio']:.1f}× OI {c['oi']:,})" for c in hot) or "none"))
+    return " · ".join(parts)
+
+
 def key_expiry_line(s: dict, prev: dict | None, show_change: bool = True) -> str:
     """'call wall 770: Nov 20 25%, Oct 23 23% (OI 57,001, +1,234 vs Oct 19) · put wall ...'"""
     parts = []
@@ -234,19 +289,24 @@ def render_brief(summaries: list[dict], as_of: str, window: str = "",
     ok = [s for s in summaries if not str(s.get("status", "ok")).startswith("error")]
     lines = [f"## {title}: {as_of}", ""] + ([window, ""] if window else []) + ["### 1) Levels", "",
              "| Ticker | Spot | Regime | Vs flip | Zero gamma | Net GEX | Call GEX | Put GEX "
-             "| Call wall (OI) | Put wall (OI) | Next call walls | Next put walls |",
-             "|---|---|---|---|---|---|---|---|---|---|---|---|"]
+             "| Call wall (OI; σ) | Put wall (OI; σ) | Next call walls | Next put walls | Earnings |",
+             "|---|---|---|---|---|---|---|---|---|---|---|---|---|"]
     for s in ok:
         zg = s.get("zero_gamma")
         vs_flip = f"{(s['spot'] / zg - 1) * 100:+.2f}%" if zg else "-"
+        sigma = _sigma(s, zg)
+        if sigma is not None:
+            # Spot above the flip is a positive distance; _sigma measures the flip from spot.
+            vs_flip += f" ({-sigma:+.1f}σ)"
         lines.append("| " + " | ".join([
             s["ticker"] + (f" (from {s['derived_from']})" if s.get("derived") else ""),
-            num(s["spot"]), s["regime"].split()[0], vs_flip, num(zg),
+            num(s["spot"]), regime_label(s), vs_flip, num(zg),
             _flow(s.get("net_gex")), _flow(s.get("call_gex")), _flow(s.get("put_gex")),
-            _strike_oi(s.get("call_wall"), s.get("call_wall_oi")),
-            _strike_oi(s.get("put_wall"), s.get("put_wall_oi")),
+            _strike_oi_sigma(s, s.get("call_wall"), s.get("call_wall_oi")),
+            _strike_oi_sigma(s, s.get("put_wall"), s.get("put_wall_oi")),
             " / ".join(f"{k:g}" for k in s.get("call_walls", [])[1:]) or "-",
             " / ".join(f"{k:g}" for k in s.get("put_walls", [])[1:]) or "-",
+            _date(s["earnings_date"]) if s.get("earnings_date") else "-",
         ]) + " |")
     lines += ["", "### 2) Dealer positioning and volatility", "",
               "| Ticker | Net GEX (per 1%) | Net DEX | Vanna (per vol pt) | Charm (per day) "
@@ -267,6 +327,15 @@ def render_brief(summaries: list[dict], as_of: str, window: str = "",
     for s in ok:
         prev = (previous or {}).get(s["ticker"])
         lines.append(f"- **{s['ticker']}**: {key_expiry_line(s, prev, previous is not None)}")
+    # Positioning changes need the OI snapshots that only history-enabled runs keep.
+    if previous is not None:
+        lines += ["", "### 4) Positioning changes", ""]
+        for s in ok:
+            if s.get("derived"):
+                continue
+            lines.append(f"- **{s['ticker']}**: {positioning_line(s, (previous or {}).get(s['ticker']))}")
+        lines += ["", "σ = one expected move (ATM straddle). \"near flip\" = spot within 1σ of the zero-gamma level. "
+                  "Earnings shown only when inside the expiry window."]
     failed = [s for s in summaries if str(s.get("status", "")).startswith("error")]
     if failed:
         lines += ["", "Failed: " + ", ".join(f"{s['ticker']} ({s['status']})" for s in failed)]

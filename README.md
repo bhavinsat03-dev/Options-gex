@@ -191,6 +191,11 @@ Each run's summary is saved to `<output_dir>/history/<TICKER>_<timestamp>.json`;
 - absolute gamma strike
 - net GEX
 
+Each run also saves a compressed per-contract open-interest snapshot
+(`<TICKER>_<timestamp>_oi.csv.gz`). The next day's runs compare against it to
+list the largest OI adds and drops by contract in the brief's
+**Positioning changes** section.
+
 ### Rate limiting
 
 The tool pauses between expiration requests and between tickers. Failed requests are retried with exponential backoff.
@@ -207,7 +212,11 @@ The tool pauses between expiration requests and between tickers. Failed requests
 | **DEX (delta exposure)** | The dollar delta dealers hold from their options positions, which their stock hedge offsets. |
 | **Vanna** | How delta changes when implied volatility changes. Vanna exposure is the dollar delta dealers gain or lose when IV rises one point, so moves in volatility create hedging flows. |
 | **Charm** | How delta changes as time passes with price and IV unchanged. Charm exposure is the daily change in dealer dollar delta from time decay alone. It matters most near expiry. |
-| **Regime** | "Positive gamma" when net GEX at the current price is positive: dealer hedging tends to offset moves. "Negative gamma" when it is negative: hedging tends to reinforce moves. |
+| **Regime** | "Positive gamma" when net GEX at the current price is positive: dealer hedging tends to offset moves. "Negative gamma" when it is negative: hedging tends to reinforce moves. The brief adds "near flip" when spot is within one expected move of the zero-gamma level, because the label can change on a small move. |
+| **σ (sigma) distance** | Distance from spot to a level measured in expected moves (one σ = the nearest-expiry ATM straddle). It makes tickers comparable: 1% is far for SPY but nothing for TSLA. |
+| **OI adds / drops** | The contracts (strike, type, expiry) whose open interest rose or fell the most since the previous day. Open interest updates overnight, so this is yesterday's new positioning. Expired contracts are excluded. |
+| **High volume vs OI** | Contracts whose volume today is at least 500 and at least half their open interest. Volume is the only intraday sign of positioning that will show up in tomorrow's OI. |
+| **Earnings** | The next earnings date, shown only when it falls inside the expiry window. Around earnings, open interest and implied volatility are dominated by the event, so walls and the expected move mean something different. |
 
 ## Caveats
 
@@ -235,6 +244,10 @@ src/gex/
 ├── plot.py     # gex.png and gamma_profile.png
 └── cli.py      # argument parsing, per-ticker runs, outputs
 ```
+
+### Brief sections
+
+`latest/brief.md` (and each scheduled post) has four sections: **1) Levels** (regime, flip, GEX, walls with OI and σ distance, earnings flag), **2) Dealer positioning and volatility**, **3) Key expiries and wall OI change**, and **4) Positioning changes** (largest OI adds and drops since the previous day plus today's high volume-vs-OI contracts). Section 4 is omitted with `--no-history`, since it needs the previous day's OI snapshot.
 
 ### Weekly SPY/QQQ table
 

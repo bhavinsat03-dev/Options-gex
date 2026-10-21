@@ -1,21 +1,21 @@
-## One-off (next 72 days): 2026-10-20 12:21 ET
+## One-off (next 45 days): 2026-10-20 20:14 ET
 
-Options expiring Oct 20 to Dec 31 (rolling 72 days).
+Options expiring Oct 20 to Dec 04 (rolling 45 days).
 
 ### 1) Levels
 
-| Ticker | Spot | Regime | Vs flip | Zero gamma | Call wall (OI) | Put wall (OI) | Next call walls | Next put walls | Abs gamma | Expected move |
-|---|---|---|---|---|---|---|---|---|---|---|
-| MU | 910.13 | negative | -0.91% | 918.53 | 900 (14,260) | 900 (23,044) | 950 / 1000 | 950 / 850 | 900.00 | 885.68–934.58 |
+| Ticker | Spot | Regime | Vs flip | Zero gamma | Net GEX | Call GEX | Put GEX | Call wall (OI) | Put wall (OI) | Next call walls | Next put walls |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| IBIT | 46.71 | positive | +3.46% | 45.15 | +$69.3M | +$157.3M | −$88.1M | 48 (95,381) | 48 (52,380) | 47 / 46.5 | 46 / 45 |
 
 ### 2) Dealer positioning and volatility
 
 | Ticker | Net GEX (per 1%) | Net DEX | Vanna (per vol pt) | Charm (per day) | Expected move | 25d skew | IV | P/C OI |
 |---|---|---|---|---|---|---|---|---|
-| MU | −$82.8M | +$18.00B | +$71.2M | −$325.2M | ±2.7% | -1.0 | 50% | 1.14 |
+| IBIT | +$69.3M | +$2.00B | +$17.9M | −$45.4M | ±1.5% | +1.0 | 37% | 0.81 |
 
 ### 3) Key expiries
 
-- **MU**: call wall **900**: Nov 20 31%, Dec 18 26% (OI 14,260) · put wall **900**: Nov 20 27%, Oct 23 21% (OI 23,044)
+- **IBIT**: call wall **48**: Oct 23 34%, Nov 20 31% (OI 95,381) · put wall **48**: Oct 30 44%, Nov 20 40% (OI 52,380)
 
 _Descriptive only; not trading advice._

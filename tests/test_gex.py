@@ -330,3 +330,7 @@ def test_volume_vs_oi_filters_and_sorts(raw_chain, now):
     assert [c["strike"] for c in hot] == [105.0, 105.0]
     assert hot[0]["ratio"] == 0.9 and hot[0]["volume"] == 900
     assert gex.volume_vs_oi(_result(raw_chain, now).contracts) == []
+    # Contracts expiring within the next day are day-trading volume, not positioning.
+    hot = gex.volume_vs_oi(_result(chain, now).contracts, today=date(2026, 10, 22))
+    assert [c["expiration"] for c in hot] == ["2026-11-20"]   # Oct 23 is 1 DTE: skipped
+    assert len(gex.volume_vs_oi(_result(chain, now).contracts, today=date(2026, 10, 21))) == 2

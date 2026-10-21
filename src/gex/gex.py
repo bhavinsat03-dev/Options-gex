@@ -466,7 +466,7 @@ class GexResult:
             "put_wall_oi": strike_oi(self.by_strike, self.put_wall, "put_oi"),
             "skew_25d": self.skew_25d,
             "expiry_concentration": self.expiry_concentration,
-            "volume_vs_oi": volume_vs_oi(self.contracts),
+            "volume_vs_oi": volume_vs_oi(self.contracts, self.today),
             "contracts": len(self.contracts),
             "expirations": len(self.expirations),
         }
@@ -549,17 +549,23 @@ def oi_changes(contracts: pd.DataFrame, previous: pd.DataFrame | None, top: int 
     }
 
 
-def volume_vs_oi(contracts: pd.DataFrame, min_volume: int = 500, min_ratio: float = 0.5,
-                 top: int = 3) -> list[dict]:
+def volume_vs_oi(contracts: pd.DataFrame, today: date | None = None, min_dte: int = 2,
+                 min_volume: int = 500, min_ratio: float = 0.5, top: int = 3) -> list[dict]:
     """Contracts trading unusually hard today relative to their open interest.
 
     Open interest only updates overnight, so today's volume is the only
     intraday sign of new positioning. Returns the ``top`` contracts by volume
     among those with volume >= ``min_volume`` and volume/OI >= ``min_ratio``.
+    Contracts expiring within ``min_dte`` days are skipped: 0DTE/1DTE volume
+    is day trading that never becomes lasting positioning and would
+    otherwise crowd out everything else.
     """
     if "volume" not in contracts:
         return []
     df = contracts[contracts["volume"] >= min_volume]
+    if today is not None:
+        dte = df["expiration"].map(lambda e: (date.fromisoformat(str(e)) - today).days)
+        df = df[dte >= min_dte]
     ratio = df["volume"] / df["open_interest"].clip(lower=1)
     df = df.assign(ratio=ratio)[ratio >= min_ratio].nlargest(top, "volume")
     return [

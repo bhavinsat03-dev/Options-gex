@@ -215,7 +215,7 @@ The tool pauses between expiration requests and between tickers. Failed requests
 | **Regime** | "Positive gamma" when net GEX at the current price is positive: dealer hedging tends to offset moves. "Negative gamma" when it is negative: hedging tends to reinforce moves. The brief adds "near flip" when spot is within one expected move of the zero-gamma level, because the label can change on a small move. |
 | **σ (sigma) distance** | Distance from spot to a level measured in expected moves (one σ = the nearest-expiry ATM straddle). It makes tickers comparable: 1% is far for SPY but nothing for TSLA. |
 | **OI adds / drops** | The contracts (strike, type, expiry) whose open interest rose or fell the most since the previous day. Open interest updates overnight, so this is yesterday's new positioning. Expired contracts are excluded. |
-| **High volume vs OI** | Contracts whose volume today is at least 500 and at least half their open interest. Volume is the only intraday sign of positioning that will show up in tomorrow's OI. |
+| **High volume vs OI** | Contracts with at least two days to expiry whose volume today is at least 500 and at least half their open interest (0DTE/1DTE contracts are skipped; their volume is day trading). Volume is the only intraday sign of positioning that will show up in tomorrow's OI. |
 | **Earnings** | The next earnings date, shown only when it falls inside the expiry window. Around earnings, open interest and implied volatility are dominated by the event, so walls and the expected move mean something different. |
 
 ## Caveats

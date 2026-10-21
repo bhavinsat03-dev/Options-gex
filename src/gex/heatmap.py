@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from datetime import date
 from pathlib import Path
 
 import matplotlib
@@ -30,7 +29,7 @@ COLUMNS = [
     ("Ticker", "", 0.9), ("Spot", "", 1.0), ("Regime", "", 1.55), ("Vs flip", "σ from zero-γ", 1.15),
     ("γ balance", "net ÷ gross GEX", 1.35), ("Net GEX", "per 1%", 1.1), ("Call wall", "OI · σ away", 1.45),
     ("Put wall", "OI · σ away", 1.45), ("IV", "25-delta call", 0.85), ("Exp. move", "ATM straddle", 1.0),
-    ("P/C OI", "", 0.8), ("Earnings", "", 1.05),
+    ("P/C OI", "", 0.8),
 ]
 ROW_H, HEAD_H = 0.62, 0.9
 
@@ -64,11 +63,6 @@ def render(summaries: list[dict], path: Path, as_of: str, title: str = "GEX heat
     rows = [s for s in summaries if not str(s.get("status", "ok")).startswith("error")]
     if not rows:
         return None
-    try:
-        today = date.fromisoformat(as_of[:10])
-    except ValueError:
-        today = None
-
     width = sum(c[2] for c in COLUMNS)
     top = 0.75
     height = top + HEAD_H + ROW_H * len(rows) + 0.85
@@ -151,21 +145,11 @@ def render(summaries: list[dict], path: Path, as_of: str, title: str = "GEX heat
         pc = s.get("put_call_oi_ratio")
         cell(10, ri, "–" if pc is None else f"{pc:.2f}",
              fill=None if pc is None else DIVERGING(_clip(0.5 - (pc - 1) / 3, 0, 1)))
-        earnings = s.get("earnings_date")
-        if not earnings:
-            cell(11, ri, "–")
-        else:
-            when = date.fromisoformat(earnings)
-            if today is not None and 0 <= (when - today).days <= 3:
-                cell(11, ri, "▲ " + ("today" if when == today else when.strftime("%b %d")), fill=WARN, bold=True,
-                     sub="this week")
-            else:
-                cell(11, ri, when.strftime("%b %d"), border=MUTED)
 
     ly = top + HEAD_H + ROW_H * len(rows) + 0.35
     items = [(POSITIVE, "positive gamma / call-heavy"), (NEGATIVE, "negative gamma / put-heavy"),
              ("#1c5cab", "darker blue = wall closer to spot · higher IV"),
-             (WARN, "yellow = near flip (<1σ) · earnings within 3 days")]
+             (WARN, "yellow outline = near flip (spot within 1σ of zero gamma)")]
     lx = 0.1
     for color, label in items:
         outline = color == WARN

@@ -216,7 +216,7 @@ The tool pauses between expiration requests and between tickers. Failed requests
 | **σ (sigma) distance** | Distance from spot to a level measured in expected moves (one σ = the nearest-expiry ATM straddle). It makes tickers comparable: 1% is far for SPY but nothing for TSLA. |
 | **OI adds / drops** | The contracts (strike, type, expiry) whose open interest rose or fell the most since the previous day. Open interest updates overnight, so this is yesterday's new positioning. Expired contracts are excluded. |
 | **High volume vs OI** | Contracts with at least two days to expiry whose volume today is at least 500 and at least half their open interest (0DTE/1DTE contracts are skipped; their volume is day trading). Volume is the only intraday sign of positioning that will show up in tomorrow's OI. |
-| **Earnings** | The next earnings date, recorded in `summary.json` and shown on the heatmap only when it falls inside the expiry window (not in the post tables). Around earnings, open interest and implied volatility are dominated by the event, so walls and the expected move mean something different. |
+| **Earnings** | The next earnings date, recorded in `summary.json` when it falls inside the expiry window; it is not shown in the post tables or the heatmap. Around earnings, open interest and implied volatility are dominated by the event, so walls and the expected move mean something different. |
 
 ## Caveats
 
@@ -261,8 +261,8 @@ under the tables repeats this.
 
 Runs with charts enabled also write `latest/heatmap.png`: the same tickers as one image
 with each cell shaded by value (blue for positive gamma or call-heavy, red for negative
-or put-heavy, darker blue for walls closer to spot and higher IV, yellow for near-flip
-and earnings within three days). Its **γ balance** column is net GEX ÷ (call GEX + |put GEX|),
+or put-heavy, darker blue for walls closer to spot and higher IV, a yellow outline for
+near-flip). Its **γ balance** column is net GEX ÷ (call GEX + |put GEX|),
 so tickers of very different size compare on one scale. Scheduled posts show the
 heatmap above the tables; it is committed to the `gex-data` branch (about 150 KB a run)
 and linked at that commit, so older posts keep their own image.

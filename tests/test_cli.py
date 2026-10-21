@@ -246,3 +246,24 @@ def test_heatmap_written_with_plots(tmp_path, now):
 def test_heatmap_skipped_without_plots(tmp_path, now):
     run(tmp_path, now, "QQQ", "--no-plots")
     assert not (tmp_path / "out" / "latest" / "heatmap.png").exists()
+
+
+def test_thin_chain_reported_as_unavailable(tmp_path, now):
+    """Pre-market Yahoo chains keep a few stray contracts; they must not become levels."""
+    thin = make_raw()
+    thin["open_interest"] = 0
+    thin.loc[(thin["type"] == "call") & (thin["strike"] == 80) & (thin["expiration"] == "2026-11-20"), "open_interest"] = 16
+
+    def fetch_thin(ticker, settings, when):
+        return 100.0, thin
+
+    cfg = tmp_path / "config.toml"
+    cfg.write_text('tickers = ["QQQ"]\npause_between_tickers = 0\n')
+    code = cli.main(["QQQ", "-c", str(cfg), "-o", str(tmp_path / "out"), "--no-plots"],
+                    fetch=fetch_thin, fetch_earnings=fake_earnings, now=now)
+    assert code == 1                                         # every ticker failed: the run fails, nothing posts
+    brief = (tmp_path / "out" / "latest" / "brief.md").read_text()
+    assert "QQQ (error: data not available yet (16 contracts" in brief
+    assert "| QQQ |" not in brief                            # no junk row in the tables
+    assert not (tmp_path / "out" / "latest" / "QQQ_tradingview.txt").exists()
+    assert not (tmp_path / "out" / "history").exists() or not list((tmp_path / "out" / "history").glob("QQQ_*"))

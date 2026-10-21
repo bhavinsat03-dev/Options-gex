@@ -91,8 +91,11 @@ class Runner:
         s = self.settings
         spot, raw = self.fetch(ticker, s, self.now)
         chain = data.clean_chain(raw, spot, self.now, s)
-        if chain.empty:
-            raise data.DataError("no contracts left after cleaning")
+        total_oi = int(chain["open_interest"].sum()) if not chain.empty else 0
+        if total_oi < s.min_total_oi:
+            raise data.DataError(
+                f"data not available yet ({total_oi:,} contracts of open interest after cleaning; "
+                "Yahoo blanks open interest and IV before the market opens)")
 
         result = gex.compute(
             ticker, chain, spot, self.today,

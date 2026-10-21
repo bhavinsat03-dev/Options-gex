@@ -23,6 +23,9 @@ class Settings:
     max_expirations: int = 0  # 0 = every expiration in the window
     strike_range_pct: float = 0.20
     min_open_interest: int = 1
+    # Below this much open interest after cleaning, the chain is treated as not
+    # available (Yahoo blanks OI and IV before the open) instead of computing junk levels.
+    min_total_oi: int = 1000
     min_iv: float = 0.01
     max_iv: float = 5.0
     min_t_days: float = 1.0 / 24.0  # floor time-to-expiry at one hour

@@ -221,6 +221,7 @@ The tool pauses between expiration requests and between tickers. Failed requests
 ## Caveats
 
 - Yahoo open interest is updated once a day, so intraday results reflect the previous day's positioning.
+- Before the market opens, Yahoo blanks open interest and IV. A ticker with less than `min_total_oi` (default 1,000) contracts of open interest after cleaning is reported as "data not available yet" rather than computed; if every ticker is in that state the run fails and nothing is posted.
 - The dealer-positioning assumption is a convention, not observed data.
 - Yahoo IVs and quotes can be stale outside market hours. The expected move and skew are most reliable during the session.
 

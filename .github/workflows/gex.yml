@@ -153,7 +153,10 @@ jobs:
           TITLE: GEX updates
           DATA_SHA: ${{ steps.commit.outputs.sha }}
         run: |
-          num=$(gh issue list --state open --search "\"$TITLE\" in:title" --json number,title -q ".[] | select(.title == \"$TITLE\") | .number" | head -1)
+          # List open issues directly (search can lag and miss it) and use the oldest exact match,
+          # so a stray duplicate never takes over the thread.
+          num=$(gh api "repos/$GITHUB_REPOSITORY/issues?state=open&per_page=100" --paginate \
+            -q ".[] | select(.pull_request == null and .title == \"$TITLE\") | .number" | sort -n | head -1)
           if [ -z "$num" ]; then
             num=$(gh issue create --title "$TITLE" --body "Each scheduled GEX run posts its levels and dealer-positioning tables here. Subscribe to get notified." | grep -o '[0-9]*$')
           fi

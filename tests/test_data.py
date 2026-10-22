@@ -60,9 +60,9 @@ def test_load_settings_rejects_unknown_keys(tmp_path):
 def test_select_expirations_rolling_window_without_cap():
     today = date(2026, 10, 20)
     exps = [(today + timedelta(days=d)).isoformat() for d in range(0, 80, 2)]
-    sel = select_expirations(exps, today, Settings())  # defaults: 45 days, no cap
-    assert sel[0] == "2026-10-20" and sel[-1] == "2026-12-03"  # day 44; day 46 is outside
-    assert len(sel) == 23
+    sel = select_expirations(exps, today, Settings())  # defaults: 60 days, no cap
+    assert sel[0] == "2026-10-20" and sel[-1] == "2026-12-19"  # day 60 is inside; day 62 is not
+    assert len(sel) == 31
 
 
 def test_select_expirations_weekly_window():

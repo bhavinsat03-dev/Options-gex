@@ -1,4 +1,4 @@
-## Weekly expiries (next 7 days): SPY & QQQ: 2026-10-22 17:57 ET
+## Weekly expiries (next 7 days): SPY & QQQ: 2026-10-22 19:54 ET
 
 Options expiring Oct 22 to Oct 29 (rolling 7 days).
 
@@ -6,15 +6,15 @@ Options expiring Oct 22 to Oct 29 (rolling 7 days).
 
 | Ticker | Spot | Regime | Vs flip | Zero gamma | Net GEX | Call GEX | Put GEX | Call wall (OI; σ) | Put wall (OI; σ) | Next call walls | Next put walls |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| SPY | 763.96 | 🔴 negative | -1.25% (-1.7σ) | 773.66 | 🔴 −$6.20B | 🟩 +$2.52B | 🟥 −$8.72B | 770 (14,812; +1.1σ) | 767 (51,675; +0.5σ) | 768 / 765 | 765 / 766 |
-| QQQ | 704.47 | 🔴 negative | -2.88% (-2.1σ) | 725.34 | 🔴 −$3.93B | 🟩 +$674.5M | 🟥 −$4.60B | 710 (2,837; +0.5σ) | 710 (50,816; +0.5σ) | 711 / 720 | 711 / 700 |
+| SPY | 763.96 | 🔴 negative | -1.26% (-1.7σ) | 773.69 | 🔴 −$6.24B | 🟩 +$2.49B | 🟥 −$8.73B | 770 (14,812; +1.1σ) | 767 (51,675; +0.5σ) | 768 / 765 | 765 / 762 |
+| QQQ | 704.47 | 🔴 negative | -2.86% (-2.0σ) | 725.21 | 🔴 −$3.97B | 🟩 +$658.1M | 🟥 −$4.63B | 710 (2,837; +0.5σ) | 710 (50,816; +0.5σ) | 711 / 720 | 711 / 700 |
 
 ### 2) Dealer positioning and volatility
 
 | Ticker | Net GEX (per 1%) | Net DEX | Vanna (per vol pt) | Charm (per day) | Expected move | 25d skew | IV | P/C OI |
 |---|---|---|---|---|---|---|---|---|
-| SPY | 🔴 −$6.20B | +$18.08B | +$180.0M | −$489.1M | ±0.7% | ⬇️ +2.4 | 🧊 14% | 🟥 1.54 |
-| QQQ | 🔴 −$3.93B | +$19.81B | −$24.7M | +$427.6M | ±1.4% | ⬇️ +3.5 | 🧊 26% | ⚪ 1.46 |
+| SPY | 🔴 −$6.24B | +$18.04B | +$172.3M | −$473.1M | ±0.7% | ⬇️ +2.4 | 🧊 14% | 🟥 1.54 |
+| QQQ | 🔴 −$3.97B | +$19.84B | −$26.9M | +$498.5M | ±1.4% | ⬇️ +3.5 | 🧊 26% | ⚪ 1.46 |
 
 ### 3) Key expiries
 

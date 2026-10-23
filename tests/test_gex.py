@@ -334,3 +334,35 @@ def test_volume_vs_oi_filters_and_sorts(raw_chain, now):
     hot = gex.volume_vs_oi(_result(chain, now).contracts, today=date(2026, 10, 22))
     assert [c["expiration"] for c in hot] == ["2026-11-20"]   # Oct 23 is 1 DTE: skipped
     assert len(gex.volume_vs_oi(_result(chain, now).contracts, today=date(2026, 10, 21))) == 2
+
+
+def _with_same_day_pin(raw_chain):
+    """Add big same-day (Oct 16) calls and puts at the money: their gamma dominates late in the session."""
+    pin = pd.DataFrame([("call", "2026-10-16", 100.0, 20000, 0.20, 1.0, 1.1, 1.05),
+                        ("put", "2026-10-16", 100.0, 20000, 0.25, 1.0, 1.1, 1.05)], columns=raw_chain.columns)
+    return pd.concat([raw_chain, pin], ignore_index=True)
+
+
+def test_skip_expiry_moves_walls_and_sigma_off_same_day():
+    from datetime import datetime, timezone
+    from conftest import make_raw
+    late = datetime(2026, 10, 16, 19, 0, tzinfo=timezone.utc)  # 15:00 ET
+    raw = _with_same_day_pin(make_raw())
+    chain = clean_chain(raw, 100.0, late, Settings())
+    every = gex.compute("TEST", chain, 100.0, TODAY, raw=raw).summary()
+    assert every["call_wall"] == every["put_wall"] == 100.0
+    assert every["call_wall_0dte_pct"] > 50 and every["walls_skip_expiry"] is None
+    assert every["expected_move"]["expiration"] == "2026-10-16"
+
+    later = gex.compute("TEST", chain, 100.0, TODAY, raw=raw, skip_expiry="2026-10-16").summary()
+    assert later["call_wall"] == 110.0 and later["put_wall"] == 90.0
+    assert later["expected_move"]["expiration"] == "2026-10-23"
+    assert later["walls_skip_expiry"] == "2026-10-16"
+    assert later["net_gex"] == pytest.approx(every["net_gex"])   # exposure totals keep same-day contracts
+
+
+def test_skip_expiry_ignored_when_it_is_the_only_expiry(raw_chain, now):
+    chain = clean_chain(raw_chain, 100.0, now, Settings())
+    only = chain[chain["expiration"] == "2026-10-23"]
+    s = gex.compute("TEST", only, 100.0, TODAY, skip_expiry="2026-10-23").summary()
+    assert s["call_wall"] is not None and s["walls_skip_expiry"] is None

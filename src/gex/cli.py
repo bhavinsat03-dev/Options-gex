@@ -102,6 +102,7 @@ class Runner:
             r=s.risk_free_rate, q=s.dividend_yield,
             sweep_pct=s.sweep_pct, sweep_steps=s.sweep_steps,
             n_walls=s.top_walls, skew_target_days=s.skew_target_days, raw=raw,
+            skip_expiry=self.today.isoformat() if self._past_same_day_cutoff() else None,
         )
         out_dir = self._out_dir(ticker)
         result.by_strike.to_csv(out_dir / "gex_by_strike.csv", index=False)
@@ -114,6 +115,14 @@ class Runner:
         summary = result.summary()
         summary["earnings_date"] = self._earnings_in_window(ticker)
         return self._finish(summary, out_dir, result.contracts)
+
+    def _past_same_day_cutoff(self) -> bool:
+        cutoff = self.settings.same_day_cutoff
+        if not cutoff:
+            return False
+        hour, minute = (int(x) for x in cutoff.split(":"))
+        local = self.now.astimezone(data.NY)
+        return (local.hour, local.minute) >= (hour, minute)
 
     def _earnings_in_window(self, ticker: str) -> str | None:
         """Next earnings date if it falls inside the expiry window, else None."""

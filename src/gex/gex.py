@@ -151,6 +151,17 @@ def oi_by_expiry(contracts: pd.DataFrame, strike: float | None, option_type: str
     }
 
 
+def same_day_oi_pct(contracts: pd.DataFrame, strike: float | None, option_type: str, today) -> float | None:
+    """Share (0-100) of a strike's open interest that expires ``today``."""
+    if strike is None:
+        return None
+    at = contracts[(contracts["type"] == option_type) & (contracts["strike"] == strike)]
+    total = at["open_interest"].sum()
+    if not total:
+        return None
+    return float(at.loc[at["expiration"].astype(str) == str(today), "open_interest"].sum() / total * 100)
+
+
 def oi_near_spot(by_strike: pd.DataFrame, spot: float, pct: float = 0.15) -> dict:
     """{'call': {'770': oi, ...}, 'put': {...}} for strikes within spot +/- pct."""
     near = by_strike[(by_strike["strike"] - spot).abs() <= spot * pct]
@@ -412,6 +423,7 @@ class GexResult:
     skew_25d: dict | None
     expiry_concentration: dict
     expirations: list[str] = field(default_factory=list)
+    skip_expiry: str | None = None  # expiry left out of walls and σ (same day, late session)
 
     @property
     def call_wall(self) -> float | None:
@@ -452,6 +464,9 @@ class GexResult:
             "total_call_oi": self.total_call_oi,
             "total_put_oi": self.total_put_oi,
             "call_wall_oi": strike_oi(self.by_strike, self.call_wall, "call_oi"),
+            "call_wall_0dte_pct": same_day_oi_pct(self.contracts, self.call_wall, "call", self.today),
+            "put_wall_0dte_pct": same_day_oi_pct(self.contracts, self.put_wall, "put", self.today),
+            "walls_skip_expiry": self.skip_expiry,
             "oi_at": oi_near_spot(self.by_strike, self.spot),
             "oi_expiries": {
                 "call_wall": oi_by_expiry(self.contracts, self.call_wall, "call"),
@@ -484,14 +499,22 @@ def compute(
     n_walls: int = 3,
     skew_target_days: float = 30,
     raw: pd.DataFrame | None = None,
+    skip_expiry: str | None = None,
 ) -> GexResult:
     """Compute every metric for one ticker.
 
     ``chain`` is the cleaned chain; ``raw`` (optional) is the full fetched
-    chain, used only for the put/call open-interest ratio.
+    chain, used only for the put/call open-interest ratio. ``skip_expiry``
+    (an expiration date) is left out when picking walls and the expected
+    move, so contracts about to expire do not set the levels; every
+    exposure total still includes it.
     """
     contracts = contract_exposures(chain, spot, r, q)
     by_strike = gex_by_strike(contracts)
+    later = contracts["expiration"].astype(str) != skip_expiry
+    if skip_expiry is None or not later.any():
+        skip_expiry, later = None, slice(None)
+    wall_strikes = gex_by_strike(contracts[later])
     profile = gex_profile(chain, spot, r, q, sweep_pct, sweep_steps)
     return GexResult(
         ticker=ticker,
@@ -501,17 +524,18 @@ def compute(
         by_strike=by_strike,
         profile=profile,
         total_gex=float(contracts["gex"].sum()),
-        call_walls=top_call_walls(by_strike, n_walls),
-        put_walls=top_put_walls(by_strike, n_walls),
+        call_walls=top_call_walls(wall_strikes, n_walls),
+        put_walls=top_put_walls(wall_strikes, n_walls),
         abs_gamma_strike=absolute_gamma_strike(by_strike),
         zero_gamma=zero_gamma(profile, spot),
-        expected_move=expected_move(chain, spot),
+        expected_move=expected_move(chain[later] if skip_expiry else chain, spot),
         put_call_oi_ratio=put_call_oi_ratio(raw if raw is not None else chain),
         total_call_oi=total_oi(raw if raw is not None else chain, "call"),
         total_put_oi=total_oi(raw if raw is not None else chain, "put"),
         skew_25d=skew_25d(chain, spot, r, q, skew_target_days),
         expiry_concentration=expiry_concentration(contracts, today),
         expirations=sorted({str(e) for e in chain["expiration"]}),
+        skip_expiry=skip_expiry,
     )
 
 
@@ -604,7 +628,8 @@ def derive_summary(proxy: dict, ticker: str, spot: float) -> dict:
     out["put_walls"] = [round(k * ratio, 2) for k in proxy.get("put_walls", [])]
     for key in ("call_wall_expiries", "put_wall_expiries"):
         out[key] = [dict(w, strike=round(w["strike"] * ratio, 2)) for w in proxy.get(key, [])]
-    for key in DOLLAR_EXPOSURES + ("total_call_oi", "total_put_oi", "call_wall_oi", "put_wall_oi", "max_call_oi", "max_put_oi"):
+    for key in DOLLAR_EXPOSURES + ("total_call_oi", "total_put_oi", "call_wall_oi", "put_wall_oi", "max_call_oi", "max_put_oi",
+                                   "call_wall_0dte_pct", "put_wall_0dte_pct"):
         out[key] = None
     em = proxy.get("expected_move")
     if em:

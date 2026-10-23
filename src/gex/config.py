@@ -34,6 +34,10 @@ class Settings:
     sweep_steps: int = 201
     # Metrics
     top_walls: int = 3
+    # From this time (ET), same-day expiries are left out of walls and the expected
+    # move: in the last hours their gamma spikes at spot and they vanish at the close.
+    # "" keeps them in all day.
+    same_day_cutoff: str = "14:00"
     skew_target_days: float = 30.0
     # Rate limiting
     pause_between_expirations: float = 0.5

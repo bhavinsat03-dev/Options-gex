@@ -298,6 +298,8 @@ def key_expiry_cells(s: dict, prev: dict | None, show_change: bool = True) -> li
 POS, NEG, NEAR = "🟢", "🔴", "🟡"
 CALL_SQ, PUT_SQ, NEUTRAL_SQ = "🟩", "🟥", "⚪"
 WALL_NEAR_SIGMA = 0.5
+SAME_DAY = "⏳"
+SAME_DAY_PCT = 50  # tag a wall when more than this % of its OI expires today
 
 
 def _dot(x) -> str:
@@ -310,10 +312,14 @@ def regime_cell(s: dict) -> str:
     return (POS if label.startswith("positive") else NEG) + (NEAR if "near flip" in label else "") + " " + label
 
 
-def _wall_cell(s: dict, strike, oi) -> str:
+def _wall_cell(s: dict, strike, oi, same_day_pct=None) -> str:
+    """'🎯 760 ⏳ (35,817; −0.3σ)'"""
     sigma = _sigma(s, strike)
     near = "🎯 " if sigma is not None and abs(sigma) < WALL_NEAR_SIGMA else ""
-    return near + _strike_oi_sigma(s, strike, oi)
+    cell = _strike_oi_sigma(s, strike, oi)
+    if same_day_pct is not None and same_day_pct > SAME_DAY_PCT:
+        cell = cell.replace(" (", f" {SAME_DAY} (", 1) if " (" in cell else f"{cell} {SAME_DAY}"
+    return near + cell
 
 
 def skew_cell(skew: dict | None) -> str:
@@ -337,7 +343,7 @@ def pc_cell(ratio) -> str:
 
 
 LEGEND = ("🟢/🔴 positive/negative gamma · 🟡 near flip (spot within 1σ of zero gamma) · "
-          "🎯 wall within 0.5σ of spot · 🔺/🔻 wall OI up/down since the prior day · "
+          "🎯 wall within 0.5σ of spot · ⏳ wall is mostly same-day (0DTE) open interest · 🔺/🔻 wall OI up/down since the prior day · "
           "⬇️/⬆️ downside/upside priced richer (25d skew ≥ 2 pts) · 🧊/🌡️/🔥 IV <30% / 30–50% / ≥50% · "
           "🟥/🟩 P/C OI ≥1.5 put-heavy / ≤0.7 call-heavy. σ = one expected move (ATM straddle).")
 
@@ -364,8 +370,8 @@ def render_brief(summaries: list[dict], as_of: str, window: str = "",
             _dot(s.get("net_gex")) + _flow(s.get("net_gex")),
             (CALL_SQ + " " if s.get("call_gex") is not None else "") + _flow(s.get("call_gex")),
             (PUT_SQ + " " if s.get("put_gex") is not None else "") + _flow(s.get("put_gex")),
-            _wall_cell(s, s.get("call_wall"), s.get("call_wall_oi")),
-            _wall_cell(s, s.get("put_wall"), s.get("put_wall_oi")),
+            _wall_cell(s, s.get("call_wall"), s.get("call_wall_oi"), s.get("call_wall_0dte_pct")),
+            _wall_cell(s, s.get("put_wall"), s.get("put_wall_oi"), s.get("put_wall_0dte_pct")),
             " / ".join(f"{k:g}" for k in s.get("call_walls", [])[1:]) or "-",
             " / ".join(f"{k:g}" for k in s.get("put_walls", [])[1:]) or "-",
         ]) + " |")
@@ -403,6 +409,10 @@ def render_brief(summaries: list[dict], as_of: str, window: str = "",
             if s.get("derived"):
                 continue
             lines.append(f"- **{s['ticker']}**: {positioning_line(s, (previous or {}).get(s['ticker']))}")
+    skipped = sorted({s["walls_skip_expiry"] for s in ok if s.get("walls_skip_expiry")})
+    if skipped:
+        lines += ["", f"Late session: options expiring {', '.join(skipped)} are left out of walls and σ "
+                      "(they expire at the close); GEX totals, flip and regime still include them."]
     lines += ["", LEGEND]
     failed = [s for s in summaries if str(s.get("status", "")).startswith("error")]
     if failed:

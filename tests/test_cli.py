@@ -271,3 +271,42 @@ def test_thin_chain_reported_as_unavailable(tmp_path, now):
     assert "| QQQ |" not in brief                            # no junk row in the tables
     assert not (tmp_path / "out" / "latest" / "QQQ_tradingview.txt").exists()
     assert not (tmp_path / "out" / "history").exists() or not list((tmp_path / "out" / "history").glob("QQQ_*"))
+
+
+def _pinned_fetch(ticker, settings, now):
+    raw = make_raw()
+    pin = pd.DataFrame([("call", "2026-10-16", 100.0, 20000, 0.20, 1.0, 1.1, 1.05),
+                        ("put", "2026-10-16", 100.0, 20000, 0.25, 1.0, 1.1, 1.05)], columns=raw.columns)
+    return 100.0, pd.concat([raw, pin], ignore_index=True)
+
+
+def _pinned_brief(tmp_path, now):
+    cfg = tmp_path / "config.toml"
+    cfg.write_text('tickers = ["QQQ"]\npause_between_tickers = 0\n')
+    cli.main(["QQQ", "-c", str(cfg), "-o", str(tmp_path / "out"), "--no-plots"],
+             fetch=_pinned_fetch, fetch_earnings=fake_earnings, now=now)
+    brief = (tmp_path / "out" / "latest" / "brief.md").read_text()
+    return brief, next(line for line in brief.splitlines() if line.startswith("| QQQ |"))
+
+
+def test_same_day_walls_tagged_before_cutoff(tmp_path):
+    from datetime import datetime, timezone
+    brief, qqq = _pinned_brief(tmp_path, datetime(2026, 10, 16, 16, 30, tzinfo=timezone.utc))  # 12:30 ET
+    assert "100 ⏳ (" in qqq
+    assert "⏳ wall is mostly same-day" in brief and "Late session" not in brief
+
+
+def test_same_day_expiry_left_out_after_cutoff(tmp_path):
+    from datetime import datetime, timezone
+    brief, qqq = _pinned_brief(tmp_path, datetime(2026, 10, 16, 19, 0, tzinfo=timezone.utc))  # 15:00 ET
+    assert "| 110 (" in qqq and "| 90 (" in qqq and "⏳" not in qqq
+    assert "Late session: options expiring 2026-10-16 are left out of walls and σ" in brief
+
+
+def test_same_day_cutoff_can_be_disabled(tmp_path):
+    from datetime import datetime, timezone
+    cfg = tmp_path / "config.toml"
+    cfg.write_text('tickers = ["QQQ"]\npause_between_tickers = 0\nsame_day_cutoff = ""\n')
+    cli.main(["QQQ", "-c", str(cfg), "-o", str(tmp_path / "out"), "--no-plots"], fetch=_pinned_fetch,
+             fetch_earnings=fake_earnings, now=datetime(2026, 10, 16, 19, 0, tzinfo=timezone.utc))
+    assert "Late session" not in (tmp_path / "out" / "latest" / "brief.md").read_text()

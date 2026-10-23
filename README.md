@@ -168,6 +168,9 @@ The tests check delta, vanna and charm against finite differences.
 ### Metrics
 
 - **Call walls / put walls (top 3).** The 3 strikes with the largest positive call GEX, and the 3 with the most negative put GEX.
+  From `same_day_cutoff` (default 14:00 ET), options expiring that day are left out of the walls and the expected move (σ):
+  in the last hours their gamma spikes at the money, so the call and put wall would both land on the strike nearest spot,
+  and those contracts are gone at the close. GEX totals, the flip and the regime still include them. Set `same_day_cutoff = ""` to keep them in all day.
 - **Absolute gamma strike.** The strike where |call GEX| + |put GEX| is largest.
 - **Gamma profile and zero-gamma flip.** The tool re-prices every contract's gamma at 201 spot prices from −10% to +10% (`sweep_pct`), holding IV, T and OI fixed. The flip is where total GEX crosses zero, found by linear interpolation; if there are several crossings, the one nearest spot is used.
 - **Regime.** `positive gamma` if net GEX at the current spot is ≥ 0, otherwise `negative gamma`. Each label comes with a one-line neutral description.
@@ -256,7 +259,7 @@ An optional **4) Positioning changes** section (largest OI adds and drops since 
 
 Markdown tables can't colour cells, so the brief puts an emoji beside each status:
 🟢/🔴 positive or negative gamma, 🟡 near flip, 🟩/🟥 call and put GEX, 🎯 a wall within
-0.5σ of spot, ⬇️/⬆️ which side the 25-delta
+0.5σ of spot, ⏳ a wall where most of the open interest expires today (the heatmap writes "0DTE"), ⬇️/⬆️ which side the 25-delta
 skew prices richer, 🧊/🌡️/🔥 IV bands and 🟥/🟩 put- or call-heavy P/C OI. A legend line
 under the tables repeats this.
 

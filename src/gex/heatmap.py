@@ -30,10 +30,11 @@ PUT_RAMP = LinearSegmentedColormap.from_list("gex_put", [NEUTRAL, "#f6c1c0", "#e
 COLUMNS = [
     ("Ticker", "", 0.85), ("Spot", "", 0.95), ("Regime", "", 1.5), ("Vs flip", "% · σ", 1.15),
     ("Zero γ", "flip level", 1.05), ("Net GEX", "per 1%", 1.1), ("Call GEX", "", 1.1), ("Put GEX", "", 1.1),
-    ("Call wall", "OI · σ away", 1.4), ("Put wall", "OI · σ away", 1.4),
+    ("Call wall", "OI · σ away", 1.6), ("Put wall", "OI · σ away", 1.6),
     ("Next call", "walls 2 & 3", 1.25), ("Next put", "walls 2 & 3", 1.25),
 ]
 ROW_H, HEAD_H = 0.62, 0.9
+SAME_DAY_PCT = 50  # mark a wall "0DTE" when more than this % of its OI expires today
 
 
 def _flow(x) -> str:
@@ -67,7 +68,7 @@ def render(summaries: list[dict], path: Path, as_of: str, title: str = "GEX heat
         return None
     width = sum(c[2] for c in COLUMNS)
     top = 0.75
-    height = top + HEAD_H + ROW_H * len(rows) + 0.85
+    height = top + HEAD_H + ROW_H * len(rows) + 1.1
     fig, ax = plt.subplots(figsize=(width, height), dpi=150)
     fig.patch.set_facecolor(SURFACE)
     ax.set_facecolor(SURFACE)
@@ -132,13 +133,16 @@ def render(summaries: list[dict], path: Path, as_of: str, title: str = "GEX heat
         # Call and put GEX are shaded by their share of gross GEX: darker = that side dominates.
         cell(6, ri, _flow(call_gex), fill=CALL_RAMP(_clip((call_gex / gross - 0.3) / 0.4, 0, 1)) if gross else None)
         cell(7, ri, _flow(put_gex), fill=PUT_RAMP(_clip((-put_gex / gross - 0.3) / 0.4, 0, 1)) if gross else None)
-        for ci, strike, oi, ramp in ((8, s.get("call_wall"), s.get("call_wall_oi"), CALL_RAMP),
-                                     (9, s.get("put_wall"), s.get("put_wall_oi"), PUT_RAMP)):
+        for ci, strike, oi, same_day, ramp in (
+                (8, s.get("call_wall"), s.get("call_wall_oi"), s.get("call_wall_0dte_pct"), CALL_RAMP),
+                (9, s.get("put_wall"), s.get("put_wall_oi"), s.get("put_wall_0dte_pct"), PUT_RAMP)):
             if strike is None:
                 cell(ci, ri, "–")
                 continue
             sigma = _sigma(s, strike)
             parts = ([f"{oi:,}"] if oi is not None else []) + ([f"{sigma:+.1f}σ"] if sigma is not None else [])
+            if same_day is not None and same_day > SAME_DAY_PCT:
+                parts.append("0DTE")
             cell(ci, ri, f"{strike:g}", sub=" · ".join(parts) or None,
                  fill=ramp(max(0.0, 1 - abs(sigma) / 3)) if sigma is not None else None)
         cell(10, ri, " / ".join(f"{k:g}" for k in s.get("call_walls", [])[1:]) or "–")
@@ -160,6 +164,10 @@ def render(summaries: list[dict], path: Path, as_of: str, title: str = "GEX heat
     if any(s.get("derived") for s in rows):
         note += " * levels derived from a proxy."
     ax.text(0.1, ly + 0.42, note, fontsize=7.5, color=MUTED, va="center")
+    late = "0DTE = most of the wall's open interest expires today."
+    if any(s.get("walls_skip_expiry") for s in rows):
+        late += " Late session: same-day expiries are left out of walls and σ (they expire at the close)."
+    ax.text(0.1, ly + 0.7, late, fontsize=7.5, color=MUTED, va="center")
 
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)

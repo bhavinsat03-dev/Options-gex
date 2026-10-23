@@ -1,4 +1,4 @@
-## Weekly expiries (next 7 days): SPY & QQQ: 2026-10-23 12:31 ET
+## Weekly expiries (next 7 days): SPY & QQQ: 2026-10-23 15:02 ET
 
 Options expiring Oct 23 to Oct 30 (rolling 7 days).
 
@@ -6,22 +6,22 @@ Options expiring Oct 23 to Oct 30 (rolling 7 days).
 
 | Ticker | Spot | Regime | Vs flip | Zero gamma | Net GEX | Call GEX | Put GEX | Call wall (OI; σ) | Put wall (OI; σ) | Next call walls | Next put walls |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| SPY | 761.69 | 🔴 negative | -0.62% (-1.7σ) | 766.46 | 🔴 −$13.16B | 🟩 +$6.13B | 🟥 −$19.29B | 🎯 762 (14,987; +0.1σ) | 🎯 762 (34,577; +0.1σ) | 763 / 764 | 760 / 755 |
-| QQQ | 706.87 | 🔴 negative | -0.70% (-1.4σ) | 711.85 | 🔴 −$3.74B | 🟩 +$3.61B | 🟥 −$7.34B | 710 (25,689; +0.9σ) | 705 (40,198; -0.5σ) | 708 / 706 | 700 / 707 |
+| SPY | 760.59 | 🔴 negative | -1.22% (-5.7σ) | 769.95 | 🔴 −$16.70B | 🟩 +$4.23B | 🟥 −$20.93B | 🎯 761 (3,629; +0.3σ) | 🎯 760 (109,650; -0.4σ) | 760 / 770 | 761 / 755 |
+| QQQ | 704.94 | 🔴 negative | -0.57% (-2.2σ) | 709.00 | 🔴 −$6.93B | 🟩 +$3.06B | 🟥 −$9.99B | 🎯 705 (11,499; +0.0σ) | 🎯 705 (40,198; +0.0σ) | 704 / 706 | 700 / 690 |
 
 ### 2) Dealer positioning and volatility
 
 | Ticker | Net GEX (per 1%) | Net DEX | Vanna (per vol pt) | Charm (per day) | Expected move | 25d skew | IV | P/C OI |
 |---|---|---|---|---|---|---|---|---|
-| SPY | 🔴 −$13.16B | +$33.77B | +$1.04B | −$3.19B | ±0.4% | ➖ +2.0 | 🧊 14% | 🟥 2.06 |
-| QQQ | 🔴 −$3.74B | +$29.40B | +$338.6M | −$1.90B | ±0.5% | ⬇️ +3.8 | 🧊 25% | 🟥 1.73 |
+| SPY | 🔴 −$16.70B | +$39.96B | +$942.4M | −$2.87B | ±0.2% | ⬇️ +3.3 | 🧊 14% | 🟥 2.06 |
+| QQQ | 🔴 −$6.93B | +$29.59B | +$265.6M | −$526.9M | ±0.3% | ⬇️ +4.8 | 🧊 24% | 🟥 1.73 |
 
 ### 3) Key expiries
 
 | Ticker | Call wall | Call OI | Call wall expiries | Put wall | Put OI | Put wall expiries |
 |---|---|---|---|---|---|---|
-| SPY | **762** | 14,987 | Oct 23 43%, Oct 30 40% | **762** | 34,577 | Oct 26 37%, Oct 23 30% |
-| QQQ | **710** | 25,689 | Oct 23 49%, Oct 30 37% | **705** | 40,198 | Oct 30 58%, Oct 23 28% |
+| SPY | **761** | 3,629 | Oct 23 52%, Oct 30 19% | **760** | 109,650 | Oct 30 71%, Oct 23 17% |
+| QQQ | **705** | 11,499 | Oct 30 58%, Oct 23 27% | **705** | 40,198 | Oct 30 58%, Oct 23 28% |
 
 🟢/🔴 positive/negative gamma · 🟡 near flip (spot within 1σ of zero gamma) · 🎯 wall within 0.5σ of spot · 🔺/🔻 wall OI up/down since the prior day · ⬇️/⬆️ downside/upside priced richer (25d skew ≥ 2 pts) · 🧊/🌡️/🔥 IV <30% / 30–50% / ≥50% · 🟥/🟩 P/C OI ≥1.5 put-heavy / ≤0.7 call-heavy. σ = one expected move (ATM straddle).
 

@@ -366,3 +366,17 @@ def test_skip_expiry_ignored_when_it_is_the_only_expiry(raw_chain, now):
     only = chain[chain["expiration"] == "2026-10-23"]
     s = gex.compute("TEST", only, 100.0, TODAY, skip_expiry="2026-10-23").summary()
     assert s["call_wall"] is not None and s["walls_skip_expiry"] is None
+
+
+def test_walls_stay_on_their_side_of_spot(raw_chain, now):
+    """Big puts above spot (in the money) are not a put wall; the strike nearest spot may serve both sides."""
+    raw = raw_chain.copy()
+    raw.loc[(raw["type"] == "put") & (raw["strike"] == 110), "open_interest"] = 50000
+    raw.loc[(raw["type"] == "call") & (raw["strike"] == 90), "open_interest"] = 50000
+    raw.loc[raw["strike"] == 100, "open_interest"] = 30000
+    chain = clean_chain(raw, 100.2, now, Settings())
+    sided = gex.compute("TEST", chain, 100.2, TODAY, raw=raw).summary()
+    assert all(k >= 100 for k in sided["call_walls"]) and all(k <= 100.2 for k in sided["put_walls"])
+    assert sided["call_wall"] == sided["put_wall"] == 100.0          # nearest strike, just below spot, counts for calls too
+    either = gex.compute("TEST", chain, 100.2, TODAY, raw=raw, walls_side_of_spot=False).summary()
+    assert 110.0 in either["put_walls"] and 90.0 in either["call_walls"]

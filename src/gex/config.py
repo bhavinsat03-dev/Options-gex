@@ -38,6 +38,9 @@ class Settings:
     # move: in the last hours their gamma spikes at spot and they vanish at the close.
     # "" keeps them in all day.
     same_day_cutoff: str = "14:00"
+    # Call walls only at or above spot, put walls only at or below it (the strike
+    # nearest spot may be either). False ranks every strike by GEX size alone.
+    walls_side_of_spot: bool = True
     skew_target_days: float = 30.0
     # Rate limiting
     pause_between_expirations: float = 0.5

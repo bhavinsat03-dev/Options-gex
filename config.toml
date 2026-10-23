@@ -18,6 +18,7 @@ sweep_pct = 0.10
 sweep_steps = 201
 
 top_walls = 3              # how many call and put walls to report
+walls_side_of_spot = true  # call walls at/above spot, put walls at/below (nearest strike may be either)
 same_day_cutoff = "14:00"  # from this ET time, same-day expiries are left out of walls and σ ("" = never)
 skew_target_days = 30      # 25-delta skew uses the expiry closest to this
 

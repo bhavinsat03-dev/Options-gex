@@ -168,6 +168,9 @@ The tests check delta, vanna and charm against finite differences.
 ### Metrics
 
 - **Call walls / put walls (top 3).** The 3 strikes with the largest positive call GEX, and the 3 with the most negative put GEX.
+  Call walls come only from strikes at or above spot and put walls from strikes at or below it, so a large in-the-money
+  strike (say puts above spot) is not reported as a wall; the strike nearest spot may be either, so a big at-the-money
+  strike is not dropped when price ticks across it. Its GEX still counts in every total. `walls_side_of_spot = false` ranks every strike by size alone.
   From `same_day_cutoff` (default 14:00 ET), options expiring that day are left out of the walls and the expected move (σ):
   in the last hours their gamma spikes at the money, so the call and put wall would both land on the strike nearest spot,
   and those contracts are gone at the close. GEX totals, the flip and the regime still include them. Set `same_day_cutoff = ""` to keep them in all day.

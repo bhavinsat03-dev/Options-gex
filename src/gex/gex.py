@@ -500,6 +500,7 @@ def compute(
     skew_target_days: float = 30,
     raw: pd.DataFrame | None = None,
     skip_expiry: str | None = None,
+    walls_side_of_spot: bool = True,
 ) -> GexResult:
     """Compute every metric for one ticker.
 
@@ -507,7 +508,9 @@ def compute(
     chain, used only for the put/call open-interest ratio. ``skip_expiry``
     (an expiration date) is left out when picking walls and the expected
     move, so contracts about to expire do not set the levels; every
-    exposure total still includes it.
+    exposure total still includes it. With ``walls_side_of_spot``, call
+    walls come only from strikes at or above spot and put walls from strikes
+    at or below it; the strike nearest spot may be either.
     """
     contracts = contract_exposures(chain, spot, r, q)
     by_strike = gex_by_strike(contracts)
@@ -515,6 +518,12 @@ def compute(
     if skip_expiry is None or not later.any():
         skip_expiry, later = None, slice(None)
     wall_strikes = gex_by_strike(contracts[later])
+    call_side = put_side = wall_strikes
+    if walls_side_of_spot and not wall_strikes.empty:
+        k = wall_strikes["strike"]
+        nearest = k.iloc[(k - spot).abs().argmin()]
+        call_side = wall_strikes[(k >= spot) | (k == nearest)]
+        put_side = wall_strikes[(k <= spot) | (k == nearest)]
     profile = gex_profile(chain, spot, r, q, sweep_pct, sweep_steps)
     return GexResult(
         ticker=ticker,
@@ -524,8 +533,8 @@ def compute(
         by_strike=by_strike,
         profile=profile,
         total_gex=float(contracts["gex"].sum()),
-        call_walls=top_call_walls(wall_strikes, n_walls),
-        put_walls=top_put_walls(wall_strikes, n_walls),
+        call_walls=top_call_walls(call_side, n_walls),
+        put_walls=top_put_walls(put_side, n_walls),
         abs_gamma_strike=absolute_gamma_strike(by_strike),
         zero_gamma=zero_gamma(profile, spot),
         expected_move=expected_move(chain[later] if skip_expiry else chain, spot),

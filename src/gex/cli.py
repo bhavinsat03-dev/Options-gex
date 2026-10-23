@@ -103,6 +103,7 @@ class Runner:
             sweep_pct=s.sweep_pct, sweep_steps=s.sweep_steps,
             n_walls=s.top_walls, skew_target_days=s.skew_target_days, raw=raw,
             skip_expiry=self.today.isoformat() if self._past_same_day_cutoff() else None,
+            walls_side_of_spot=s.walls_side_of_spot,
         )
         out_dir = self._out_dir(ticker)
         result.by_strike.to_csv(out_dir / "gex_by_strike.csv", index=False)

@@ -1,4 +1,4 @@
-## Weekly expiries (next 7 days): SPY & QQQ: 2026-10-23 15:23 ET
+## Weekly expiries (next 7 days): SPY & QQQ: 2026-10-23 16:33 ET
 
 Options expiring Oct 23 to Oct 30 (rolling 7 days).
 
@@ -6,22 +6,22 @@ Options expiring Oct 23 to Oct 30 (rolling 7 days).
 
 | Ticker | Spot | Regime | Vs flip | Zero gamma | Net GEX | Call GEX | Put GEX | Call wall (OI; σ) | Put wall (OI; σ) | Next call walls | Next put walls |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| SPY | 760.43 | 🔴🟡 negative, near flip | -0.75% (-0.9σ) | 766.18 | 🔴 −$16.17B | 🟩 +$4.29B | 🟥 −$20.46B | 770 (39,092; +1.5σ) | 755 (132,883; -0.8σ) | 765 / 780 | 750 / 760 |
-| QQQ | 704.67 | 🔴 negative | -1.77% (-1.2σ) | 717.38 | 🔴 −$6.65B | 🟩 +$2.89B | 🟥 −$9.53B | 710 (25,689; +0.5σ) | 🎯 700 (120,420; -0.5σ) | 725 / 730 | 690 / 695 |
+| SPY | 759.97 | 🔴 negative | -1.63% (-2.1σ) | 772.59 | 🔴 −$10.72B | 🟩 +$3.02B | 🟥 −$13.74B | 770 (19,589; +1.7σ) | 755 (111,405; -0.8σ) | 765 / 780 | 750 / 760 |
+| QQQ | 704.40 | 🔴 negative | -2.93% (-2.1σ) | 725.65 | 🔴 −$3.58B | 🟩 +$1.46B | 🟥 −$5.05B | 710 (13,209; +0.6σ) | 🎯 700 (98,560; -0.4σ) | 725 / 730 | 690 / 695 |
 
 ### 2) Dealer positioning and volatility
 
 | Ticker | Net GEX (per 1%) | Net DEX | Vanna (per vol pt) | Charm (per day) | Expected move | 25d skew | IV | P/C OI |
 |---|---|---|---|---|---|---|---|---|
-| SPY | 🔴 −$16.17B | +$34.86B | +$943.4M | −$3.50B | ±0.8% | ⬇️ +2.6 | 🧊 14% | 🟥 2.06 |
-| QQQ | 🔴 −$6.65B | +$36.54B | +$238.4M | +$770.2M | ±1.5% | ⬇️ +4.4 | 🧊 24% | 🟥 1.73 |
+| SPY | 🔴 −$10.72B | +$31.68B | +$884.3M | −$1.24B | ±0.8% | ➖ +1.8 | 🧊 14% | 🟥 2.06 |
+| QQQ | 🔴 −$3.58B | +$25.93B | +$269.0M | −$581.6M | ±1.4% | ⬇️ +3.0 | 🧊 25% | 🟥 1.73 |
 
 ### 3) Key expiries
 
 | Ticker | Call wall | Call OI | Call wall expiries | Put wall | Put OI | Put wall expiries |
 |---|---|---|---|---|---|---|
-| SPY | **770** | 39,092 | Oct 23 50%, Oct 30 28% | **755** | 132,883 | Oct 26 64%, Oct 30 18% |
-| QQQ | **710** | 25,689 | Oct 23 49%, Oct 30 37% | **700** | 120,420 | Oct 30 73%, Oct 23 18% |
+| SPY | **770** | 19,589 | Oct 30 57%, Oct 26 20% | **755** | 111,405 | Oct 26 76%, Oct 30 21% |
+| QQQ | **710** | 13,209 | Oct 30 73%, Oct 26 13% | **700** | 98,560 | Oct 30 90%, Oct 26 5% |
 
 Late session: options expiring 2026-10-23 are left out of walls and σ (they expire at the close); GEX totals, flip and regime still include them.
 
